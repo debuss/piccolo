@@ -1,0 +1,128 @@
+openapi: 3.1.0
+info:
+  title: Piccolo Posts API
+  description: |
+    A demo API façade proxying posts from [JSONPlaceholder](https://jsonplaceholder.typicode.com).
+
+    Implemented handler:
+    - `PostHandler`
+
+    This API is read-only and does not support creation, update or deletion of resources.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+tags:
+  - name: Posts
+paths:
+  /posts:
+    get:
+      tags: [Posts]
+      summary: List all posts
+      description: Returns the full list of posts from JSONPlaceholder.
+      operationId: listPosts
+      responses:
+        '200':
+          description: List of posts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        '502':
+          $ref: '#/components/responses/ProblemBadGatewayResponse'
+  /posts/{id}:
+    get:
+      tags: [Posts]
+      summary: Get post by ID
+      description: Returns a single post for the given numeric identifier.
+      operationId: getPost
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Post found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          $ref: '#/components/responses/ProblemNotFoundResponse'
+        '502':
+          $ref: '#/components/responses/ProblemBadGatewayResponse'
+components:
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      description: Numeric identifier of the post.
+      schema:
+        type: integer
+        minimum: 1
+      example: 1
+  responses:
+    ProblemNotFoundResponse:
+      description: No post exists for the given ID.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Status/404
+            title: The requested ID does not exist.
+            status: 404
+            detail: The requested ID "9999" does not exist.
+            instance: /api/v1/posts/9999
+    ProblemBadGatewayResponse:
+      description: The upstream JSONPlaceholder API could not be reached.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://developer.mozilla.org/fr/docs/Web/HTTP/Reference/Status/502
+            title: An error occurred while processing the request.
+            status: 502
+            detail: Failed to connect to jsonplaceholder.typicode.com.
+  schemas:
+    Post:
+      type: object
+      required:
+        - id
+        - userId
+        - title
+        - body
+      properties:
+        id:
+          type: integer
+          example: 1
+        userId:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: sunt aut facere repellat provident occaecati excepturi optio reprehenderit
+        body:
+          type: string
+          example: quia et suscipit\nsuscipit recusandae consequuntur expedita et cum
+    ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - detail
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string

@@ -1,0 +1,74 @@
+{
+  "name": "debuss-a/piccolo",
+  "description": "A PSR-15 application skeleton built on Laminas Stratigility and Mezzio components, with League Container, attribute-based routing, and a DDD-layered structure.",
+  "license": "MIT",
+  "keywords": [
+    "psr",
+    "psr-7",
+    "psr-15",
+    "mezzio",
+    "ddd",
+    "micro",
+    "framework"
+  ],
+  "authors": [
+    {
+      "name": "Alexandre Debusschère",
+      "email": "alexandre.debusschere@hey.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Application\\": "src/Application/",
+      "Domain\\": "src/Domain/",
+      "Infrastructure\\": "src/Infrastructure/"
+    },
+    "files": [
+      "bootstrap/defines.php",
+      "bootstrap/helpers.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "require": {
+    "php": "^8.4",
+    "ext-pdo": "*",
+    "borschphp/config": "^1.4",
+    "debuss-a/attribute-routing": "^1.1",
+    "debuss-a/awareness": "^1.2",
+    "filp/whoops": "^2.18",
+    "laminas/laminas-db": "^2.22",
+    "laminas/laminas-diactoros": "^3.8",
+    "laminas/laminas-httphandlerrunner": "^2.13",
+    "laminas/laminas-stratigility": "^4.3",
+    "league/container": "^5.2",
+    "matthiasmullie/scrapbook": "^1.5",
+    "mezzio/mezzio-fastroute": "^3.14",
+    "mezzio/mezzio-helpers": "^5.20",
+    "mezzio/mezzio-platesrenderer": "^2.14",
+    "mezzio/mezzio-problem-details": "^1.19",
+    "monolog/monolog": "^3.10",
+    "php-http/curl-client": "^2.4"
+  },
+  "require-dev": {
+    "pestphp/pest": "^5.0"
+  },
+  "scripts": {
+    "post-create-project-cmd": [
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+    ],
+    "serve": [
+      "Composer\\Config::disableProcessTimeout",
+      "php -S localhost:8080 -t ./public/ ./public/index.php"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": false,
+      "pestphp/pest-plugin": true
+    }
+  }
+}
