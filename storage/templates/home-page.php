@@ -224,7 +224,7 @@
                 A dedicated handler serves a
                 <a href="https://redocly.com/redoc" target="_blank">Redoc</a> interface for your API specification,
                 making it easy to publish clear, browsable documentation.<br/>
-                You can review the bundled example at <a href="/api/v1/redoc">the Rick and Morty API reference</a>.
+                You can review the bundled example at <a href="/api/v1/redoc">the {JSON} Placeholder API reference</a>.
             </p>
             <a href="https://redocly.com/redoc" class="icon-link" target="_blank">
                 Get started with Redoc
