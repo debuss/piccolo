@@ -2,9 +2,7 @@
 
 use Application\Application;
 use Application\Handler\HealthCheck\HealthHandler;
-use Laminas\Diactoros\Response;
 use Psr\Container\ContainerInterface;
-use Psr\Http\Message\ResponseInterface;
 use Routing\AttributeRouteLoader;
 
 /**
@@ -41,15 +39,18 @@ use Routing\AttributeRouteLoader;
 return static function (Application $app, ContainerInterface $container): void
 {
     // For convenience, Piccolo comes with an attribute-based route loader.
-    // Which means you can focus on your handlers, defines a few attribute and you will not need to come back here to
-    // register your new route. You can define your route and it logic all at the same place (your handler).
+    // Which means you can focus on your handlers, defines a few attribute, and you will not need to come back here to
+    // register your new route. You can define your route and its logic all at the same place (your handler).
     // For more information on AttributeRouteLoader : https://github.com/debuss/attribute-routing
-    $attributeRouteLoader = new AttributeRouteLoader('Application\\Handler', source_path('Application/Handler'));
+    $attributeRouteLoader = new AttributeRouteLoader(
+        'Application\\Handler',
+        source_path('Application/Handler')
+    );
 
     foreach ($attributeRouteLoader->getRouteDefinitions() as $routeDefinition) {
         $app->route(
             $routeDefinition->path,
-            $routeDefinition->handler[0], // RequestHandlerInterface
+            $routeDefinition->handler[0], // e.g.: RequestHandlerInterface
             $routeDefinition->methods,
             $routeDefinition->name
         );

@@ -47,9 +47,6 @@ $container->add(ContainerInterface::class, $container);
  * in a modular way, making your application easier to maintain and extend.
  * Moreover, they are only loaded if a service requires one of the definitions inside it, making your app lighter.
  *
- * A few providers below are commented as they might not be necessary, feel free to modify and enable them according to
- * your needs.
- *
  * For more information on service providers : https://container.thephpleague.com/5.x/service-providers/
  */
 

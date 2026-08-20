@@ -18,7 +18,6 @@ class PostClient implements PostClientInterface, RequestFactoryAwareInterface
 
     public function __construct(
         private readonly ClientInterface $client
-
     ) {}
 
     public function getAll(): array

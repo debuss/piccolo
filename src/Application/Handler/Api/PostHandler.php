@@ -9,7 +9,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Routing\Attribute\{ApiController, HttpGet};
 
 #[ApiController('/api/v1')]
-class PostHandler implements RequestHandlerInterface
+readonly class PostHandler implements RequestHandlerInterface
 {
 
     public function __construct(
