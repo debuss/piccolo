@@ -59,9 +59,7 @@ return static function (Application $app, ContainerInterface $container): void
     $app->pipe(ImplicitOptionsMiddleware::class);
     $app->pipe(MethodNotAllowedMiddleware::class);
 
-    // Add more middleware here that needs to introspect the routing results; this
-    // might include:
-    //
+    // Add more middleware here that needs to introspect the routing results; this might include:
     // - route-based authentication
     // - route-based validation
     // - etc.

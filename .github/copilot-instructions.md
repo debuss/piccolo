@@ -1,6 +1,6 @@
-# Copilot Instructions — Piccolo Skeleton
+# Copilot Instructions
 
-Piccolo is a PHP 8.4 application skeleton built on Laminas Stratigility, Mezzio Router, and League Container.
+Piccolo is a PHP 8.4+ application skeleton built on Laminas Stratigility, Mezzio Router, and League Container.
 It follows Domain-Driven Design conventions and PSR standards throughout (PSR-3, PSR-6, PSR-7, PSR-11, PSR-15, PSR-16, PSR-17, PSR-18).
 
 Read these instructions before suggesting or generating any code.
@@ -57,7 +57,7 @@ They are organized in sub-namespaces by concern (e.g. `Application\Handler\Api`,
 - Use `#[ApiController('/prefix')]` for API handlers.
 - Always provide a `name:` argument — it is used for URI generation.
 - The `AttributeRouteLoader` scans `Application\Handler` recursively; there is nothing else to register.
-- Handlers that do not need attribute routing (e.g. health check) are registered manually in `config/routes.php`.
+- If requested, routes can be registered manually in `config/routes.php` instead of using attributes.
 
 **Injection pattern:** dependencies are resolved by League Container via constructor injection (ReflectionContainer autowiring applies).
 For common PSR dependencies, use `Awareness` traits instead of constructor injection — see below.
@@ -88,6 +88,7 @@ use League\Container\ServiceProvider\AbstractServiceProvider;
 
 class MyServiceProvider extends AbstractServiceProvider
 {
+
     public function provides(string $id): bool
     {
         return in_array($id, [
@@ -101,6 +102,7 @@ class MyServiceProvider extends AbstractServiceProvider
             ->add(MyInterface::class, MyImplementation::class);
     }
 }
+
 ```
 
 ---
@@ -108,7 +110,7 @@ class MyServiceProvider extends AbstractServiceProvider
 ## Awareness pattern
 
 `debuss-a/awareness` provides interface+trait pairs to inject PSR dependencies without constructor bloat.  
-`afterResolve` hooks in service providers call the setters automatically after resolution.
+`afterResolve` hooks in service providers (or the container) call the setters automatically after resolution.
 
 Available interfaces (all auto-injected via existing hooks):
 
@@ -138,12 +140,16 @@ class MyHandler implements RequestHandlerInterface, LoggerAwareInterface, Reques
 }
 ```
 
+**Note:** Not all PSR interfaces available in `Awareness` are auto-injected. Only the one needed by this application
+are. You can add missing awareness hooks in the corresponding service provider if needed.
+
 ---
 
 ## Domain models
 
-Domain models are `final readonly` classes implementing `JsonSerializable`.  
-They expose a `static fromArray(array $data): self` named constructor.  
+Domain models are `final readonly` classes, implementing `JsonSerializable` if expected to be returned as JSON.  
+They expose a `static fromArray(array $data): self` named constructor to ease the mapping from data retrieved in the
+Infrastructure layer but can be omitted if not needed.  
 Properties are public and immutable. Never add setters.
 
 ```php
@@ -325,6 +331,7 @@ Globally available (loaded via `bootstrap/helpers.php`):
 ## Middleware pipeline rules
 
 - Middleware order in `config/pipeline.php` is significant — never reorder without understanding side effects.
+- Middlewares are executed in the order they are declared, and the request flows from top to bottom.
 - `ErrorHandler` must always be **first** (outermost).
 - `ProblemDetailsMiddleware` is scoped to `/api` — do not move it to the global scope.
 - Additional middleware should be path-scoped where possible.
@@ -348,5 +355,5 @@ Pest is the test framework (`pestphp/pest`). Tests live in `tests/`.
 - Do not use `Logger::class` directly where `LoggerInterface::class` is sufficient.
 - Do not resolve container entries eagerly inside service provider `register()` — prefer lazy `addArgument()` chains.
 - Do not suppress exceptions with empty `catch` blocks (health check probes are the only accepted exception).
-- Do not add a route to `config/routes.php` for a handler that already declares routing attributes — it will be registered twice.
+- Do not add a route to `config/routes.php` for a handler that already declares routing attributes — it will throw an exception.
 - Do not place domain types or shared concepts in the `Application` namespace.

@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 use Application\Application;
-use Application\Handler\HealthCheck\HealthHandler;
+use Application\Handler\HealthCheck\{HealthHandler, PingHandler};
 use Psr\Container\ContainerInterface;
 use Routing\AttributeRouteLoader;
 
@@ -58,4 +58,5 @@ return static function (Application $app, ContainerInterface $container): void
 
     // You still can add route manually here
     $app->get('/api/health', HealthHandler::class, 'api.health');
+    $app->get('/api/ping', PingHandler::class, 'api.ping');
 };
