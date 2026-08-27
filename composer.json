@@ -7,9 +7,11 @@
     "psr-7",
     "psr-15",
     "mezzio",
+    "laminas",
     "ddd",
     "micro",
-    "framework"
+    "framework",
+    "api"
   ],
   "authors": [
     {
@@ -54,7 +56,7 @@
     "php-http/curl-client": "^2.4"
   },
   "require-dev": {
-    "pestphp/pest": "^5.0"
+    "pestphp/pest": "^5.1"
   },
   "scripts": {
     "post-create-project-cmd": [
