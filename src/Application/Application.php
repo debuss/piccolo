@@ -6,7 +6,7 @@ use Application\Middleware\LazyLoadingMiddleware;
 use InvalidArgumentException;
 use Laminas\HttpHandlerRunner\RequestHandlerRunnerInterface;
 use Laminas\Stratigility\Middleware\{CallableMiddlewareDecorator, RequestHandlerMiddleware};
-use Laminas\Stratigility\{MiddlewarePipeInterface, MiddlewarePipe};
+use Laminas\Stratigility\MiddlewarePipeInterface;
 use Mezzio\Router\{Route, RouteCollector};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
 use Psr\Container\{ContainerExceptionInterface, ContainerInterface, NotFoundExceptionInterface};
@@ -98,64 +98,36 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
         return $middleware;
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function route(string $path, $middleware, ?array $methods = null, ?string $name = null): Route
     {
         return $this->routes->route($path, $this->toMiddleware($middleware), $methods, $name);
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function get(string $path, $middleware, ?string $name = null): Route
     {
         return $this->route($path, $middleware, ['GET'], $name);
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function post(string $path, $middleware, ?string $name = null): Route
     {
         return $this->route($path, $middleware, ['POST'], $name);
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function put(string $path, $middleware, ?string $name = null): Route
     {
         return $this->route($path, $middleware, ['PUT'], $name);
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function patch(string $path, $middleware, ?string $name = null): Route
     {
         return $this->route($path, $middleware, ['PATCH'], $name);
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function delete(string $path, $middleware, ?string $name = null): Route
     {
         return $this->route($path, $middleware, ['DELETE'], $name);
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function any(string $path, $middleware, ?string $name = null): Route
     {
         return $this->route($path, $middleware,  null, $name);
