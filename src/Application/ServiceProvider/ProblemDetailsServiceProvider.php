@@ -2,6 +2,7 @@
 
 namespace Application\ServiceProvider;
 
+use Application\Http\ProblemDetails\{ExceptionStatusMapper, MappingProblemDetailsResponseFactory};
 use League\Container\ServiceProvider\AbstractServiceProvider;
 use Mezzio\ProblemDetails\{ProblemDetailsMiddleware, ProblemDetailsResponseFactory};
 use Psr\Container\ContainerExceptionInterface;
@@ -21,6 +22,7 @@ class ProblemDetailsServiceProvider extends AbstractServiceProvider
     public function provides(string $id): bool
     {
         return in_array($id, [
+            ExceptionStatusMapper::class,
             ProblemDetailsResponseFactory::class,
             ProblemDetailsMiddleware::class
         ]);
@@ -32,13 +34,19 @@ class ProblemDetailsServiceProvider extends AbstractServiceProvider
      */
     public function register(): void
     {
+        $this->getContainer()->add(ExceptionStatusMapper::class);
+
         $this
             ->getContainer()
             ->add(
                 ProblemDetailsResponseFactory::class,
-                static fn (ResponseFactoryInterface $responseFactory) => new ProblemDetailsResponseFactory($responseFactory)
+                static fn (ResponseFactoryInterface $responseFactory, ExceptionStatusMapper $mapper) =>
+                    new MappingProblemDetailsResponseFactory($responseFactory, $mapper)
             )
-            ->addArgument(ResponseFactoryInterface::class);
+            ->addArguments([
+                ResponseFactoryInterface::class,
+                ExceptionStatusMapper::class
+            ]);
 
         $this
             ->getContainer()

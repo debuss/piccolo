@@ -2,11 +2,11 @@
 
 namespace Infrastructure\Post;
 
-use Domain\Shared\Exception\ClientException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Awareness\{RequestFactoryAwareInterface, RequestFactoryAwareTrait};
 use Domain\Post\{Post, PostClientInterface};
 use Domain\Shared\Exception\NotFoundException;
+use Infrastructure\Shared\Exception\ClientException;
 use Psr\Http\Client\ClientInterface;
 
 class PostClient implements PostClientInterface, RequestFactoryAwareInterface
@@ -27,13 +27,12 @@ class PostClient implements PostClientInterface, RequestFactoryAwareInterface
         try {
             $response = $this->client->sendRequest($request);
         } catch (ClientExceptionInterface $e) {
-            throw ClientException::create($e->getMessage(), 502, previous: $e);
+            throw ClientException::create($e->getMessage(), previous: $e);
         }
 
         if ($response->getStatusCode() >= 400) {
             throw ClientException::create(
-                sprintf('Upstream request failed with status %d', $response->getStatusCode()),
-                502
+                sprintf('Upstream request failed with status %d', $response->getStatusCode())
             );
         }
 
@@ -51,11 +50,11 @@ class PostClient implements PostClientInterface, RequestFactoryAwareInterface
         try {
             $response = $this->client->sendRequest($request);
         } catch (ClientExceptionInterface $e) {
-            throw ClientException::create($e->getMessage(), 502, previous: $e);
+            throw ClientException::create($e->getMessage(), previous: $e);
         }
 
         if ($response->getStatusCode() === 404) {
-            throw NotFoundException::create($id);
+            throw NotFoundException::create('Post', $id);
         }
 
         $response->getBody()->rewind();

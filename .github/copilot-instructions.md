@@ -215,16 +215,23 @@ interface PostClientInterface
 
 ## Exceptions
 
-Two shared exception classes exist in `Domain\Shared\Exception`:
+Domain and Infrastructure exceptions are plain `RuntimeException`s — they must not know about HTTP, status codes, or
+`ProblemDetailsExceptionInterface`. Mapping an exception to an HTTP response is an `Application` (delivery) concern,
+handled by `ExceptionStatusMapper` — see [Error handling](#error-handling) below.
 
-- `NotFoundException` — thrown when a requested resource does not exist (HTTP 404). Extends `RuntimeException`, implements `ProblemDetailsExceptionInterface`.
-- `ClientException` — thrown when an upstream HTTP call fails (HTTP 502). Extends `RuntimeException`, implements `ProblemDetailsExceptionInterface`.
-
-Both use `CommonProblemDetailsExceptionTrait` and expose a `static create(...)` factory.
+- `Domain\Shared\Exception\NotFoundException` — thrown when a requested resource does not exist. Reusable across
+  domains; exposes `static create(string $resource, int|string $id): self`.
+- `Infrastructure\Shared\Exception\ClientException` — thrown by Infrastructure HTTP clients when an upstream call
+  fails (network error, non-2xx response, ...). Exposes `static create(string $message, ?Throwable $previous = null): self`.
 
 **When to add a domain-specific exception:**  
 If the exception semantics are specific to one domain, create it in `Domain\{Context}\Exception`.  
-If it can be reused across domains, put it in `Domain\Shared\Exception`.
+If it can be reused across domains, put it in `Domain\Shared\Exception` (or `Infrastructure\Shared\Exception` for
+infrastructure-only failures with no domain meaning).
+
+**When adding a new exception that should map to a non-500 status:** register it in
+`ExceptionStatusMapper`'s `$map` (`src/Application/Http/ProblemDetails/ExceptionStatusMapper.php`) — do not add HTTP
+concerns back onto the exception class itself.
 
 ---
 
@@ -240,7 +247,8 @@ namespace Infrastructure\Post;
 
 use Awareness\{RequestFactoryAwareInterface, RequestFactoryAwareTrait};
 use Domain\Post\{Post, PostClientInterface};
-use Domain\Shared\Exception\{ClientException, NotFoundException};
+use Domain\Shared\Exception\NotFoundException;
+use Infrastructure\Shared\Exception\ClientException;
 use Psr\Http\Client\{ClientExceptionInterface, ClientInterface};
 
 class PostClient implements PostClientInterface, RequestFactoryAwareInterface
@@ -260,11 +268,11 @@ class PostClient implements PostClientInterface, RequestFactoryAwareInterface
         try {
             $response = $this->client->sendRequest($request);
         } catch (ClientExceptionInterface $e) {
-            throw ClientException::create($e->getMessage(), 502, previous: $e);
+            throw ClientException::create($e->getMessage(), previous: $e);
         }
 
         if ($response->getStatusCode() === 404) {
-            throw NotFoundException::create($id);
+            throw NotFoundException::create('Post', $id);
         }
 
         $response->getBody()->rewind();
@@ -285,7 +293,12 @@ $container->add(PostClientInterface::class, PostClient::class);
 ## Error handling
 
 - **HTML errors**: `Whoops` with `PrettyPageHandler` in development, `PlainTextHandler` in production. Controlled by `APP_ENV`.
-- **API errors**: `ProblemDetailsMiddleware` is scoped to `/api` in the pipeline. Any exception implementing `ProblemDetailsExceptionInterface` is automatically serialized as `application/problem+json` (RFC 7807).
+- **API errors**: `ProblemDetailsMiddleware` is scoped to `/api` in the pipeline. It uses `MappingProblemDetailsResponseFactory`
+  (`src/Application/Http/ProblemDetails/MappingProblemDetailsResponseFactory.php`), which consults `ExceptionStatusMapper`
+  to turn a plain Domain/Infrastructure exception into the right status/title, then falls back to the stock
+  `ProblemDetailsResponseFactory` behavior (500, generic detail) for anything unmapped. Only reach for
+  `ProblemDetailsExceptionInterface` directly if an exception needs response fields the mapper can't express
+  (e.g. per-instance `additional` data) — the mapper is the default path.
 - **Logging**: Both `ErrorHandler` and `ProblemDetailsMiddleware` attach a listener that calls `$logger->error(...)` with full request/response context.
 
 Do not wrap handler logic in `try/catch` to build HTTP responses — throw `NotFoundException` or `ClientException` from the domain/infrastructure layer and let the middleware pipeline convert them.
