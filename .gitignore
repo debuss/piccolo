@@ -1,8 +1,8 @@
 .env
 .idea/
-./storage/cache/**/*
-./storage/logs/*.log
-./vendor/
+/storage/cache/**/*
+/storage/logs/*.log
+/vendor/
 
 # Project exclude paths
 /vendor/borschphp/config/

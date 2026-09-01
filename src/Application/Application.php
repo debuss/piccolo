@@ -59,7 +59,7 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
 
         if (is_array($middleware)) {
             foreach ($middleware as $middle) {
-                $this->pipe($middlewareOrPath, $middle);
+                $this->pipe($path, $middle);
             }
             return;
         }

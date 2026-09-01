@@ -25,9 +25,13 @@ readonly class HealthHandler implements RequestHandlerInterface
         ];
 
         if ($this->adapter !== null) {
-            $connections['database'] = $this->adapter->getDriver()->getConnection()->connect()->isConnected()
-                ? 'OK' :
-                'KO';
+            $connections['database'] = 'KO';
+
+            try {
+                if ($this->adapter->getDriver()->getConnection()->connect()->isConnected()) {
+                    $connections['database'] = 'OK';
+                }
+            } catch (Throwable) {}
         }
 
         if ($this->cache !== null) {

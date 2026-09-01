@@ -30,6 +30,13 @@ class PostClient implements PostClientInterface, RequestFactoryAwareInterface
             throw ClientException::create($e->getMessage(), 502, previous: $e);
         }
 
+        if ($response->getStatusCode() >= 400) {
+            throw ClientException::create(
+                sprintf('Upstream request failed with status %d', $response->getStatusCode()),
+                502
+            );
+        }
+
         $response->getBody()->rewind();
 
         $body = json_decode($response->getBody()->getContents(), true);
