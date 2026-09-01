@@ -6,7 +6,7 @@ use Application\Middleware\LazyLoadingMiddleware;
 use InvalidArgumentException;
 use Laminas\HttpHandlerRunner\RequestHandlerRunnerInterface;
 use Laminas\Stratigility\Middleware\{CallableMiddlewareDecorator, RequestHandlerMiddleware};
-use Laminas\Stratigility\MiddlewarePipeInterface;
+use Laminas\Stratigility\{MiddlewarePipe, MiddlewarePipeInterface};
 use Mezzio\Router\{Route, RouteCollector};
 use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
 use Psr\Container\{ContainerExceptionInterface, ContainerInterface, NotFoundExceptionInterface};
@@ -58,9 +58,21 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
         $path = $middleware === $middlewareOrPath ? '/' : $middlewareOrPath;
 
         if (is_array($middleware)) {
-            foreach ($middleware as $middle) {
-                $this->pipe($path, $middle);
+            if ($path === '/') {
+                foreach ($middleware as $middle) {
+                    $this->pipe($path, $middle);
+                }
+                return;
             }
+
+            // Group path-scoped middleware into a single nested pipe, so the path is matched once per request
+            // instead of once per middleware in the group.
+            $group = new MiddlewarePipe();
+            foreach ($middleware as $middle) {
+                $group->pipe($this->toMiddleware($middle));
+            }
+
+            $this->pipeline->pipe(path($path, $group));
             return;
         }
 
