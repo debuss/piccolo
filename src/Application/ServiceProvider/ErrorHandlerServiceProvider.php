@@ -59,9 +59,7 @@ class ErrorHandlerServiceProvider extends AbstractServiceProvider
                     return $whoops;
                 }
             )
-            ->addArgument(
-                $this->getContainer()->get(Config::class)
-            );
+            ->addArgument(Config::class);
 
         $this
             ->getContainer()
@@ -107,9 +105,9 @@ class ErrorHandlerServiceProvider extends AbstractServiceProvider
                 }
             )
             ->addArguments([
-                $this->getContainer()->get(ResponseFactoryInterface::class),
-                $this->getContainer()->get(Run::class),
-                $this->getContainer()->get(LoggerInterface::class)
+                ResponseFactoryInterface::class,
+                Run::class,
+                LoggerInterface::class
             ]);
     }
 }

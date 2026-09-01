@@ -38,7 +38,7 @@ class FastRouteRouterServiceProvider extends AbstractServiceProvider
                     FastRouteRouter::CONFIG_CACHE_FILE => cache_path('routes.cache.php')
                 ])
             )
-            ->addArgument($this->getContainer()->get(Config::class));
+            ->addArgument(Config::class);
 
         $this->getContainer()->add(RouterInterface::class, FastRouteRouter::class);
     }

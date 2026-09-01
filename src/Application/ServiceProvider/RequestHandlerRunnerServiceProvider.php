@@ -42,14 +42,18 @@ class RequestHandlerRunnerServiceProvider extends AbstractServiceProvider
         $this->container->add(MiddlewarePipe::class, $pipeline);
         $this->container->add(MiddlewarePipeInterface::class, MiddlewarePipe::class);
 
-        $serverRequestFactory = $this->container->get(ServerRequestFactoryInterface::class);
+        $container = $this->getContainer();
 
         $this
             ->getContainer()
             ->add(RequestHandlerRunner::class)
             ->addArgument($pipeline)
             ->addArgument(new SapiEmitter)
-            ->addArgument(static fn (): ServerRequestInterface => $serverRequestFactory::fromGlobals())
+            ->addArgument(static function () use ($container): ServerRequestInterface {
+                $serverRequestFactory = $container->get(ServerRequestFactoryInterface::class);
+
+                return $serverRequestFactory::fromGlobals();
+            })
             ->addArgument(static function (Throwable $e): ResponseInterface {
                 $response = (new ResponseFactory())->createResponse(500);
                 $response->getBody()->write(sprintf(

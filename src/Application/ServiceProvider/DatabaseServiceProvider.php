@@ -41,8 +41,6 @@ class DatabaseServiceProvider extends AbstractServiceProvider
                     ],
                 ])
             )
-            ->addArgument(
-                $this->getContainer()->get(Config::class)
-            );
+            ->addArgument(Config::class);
     }
 }

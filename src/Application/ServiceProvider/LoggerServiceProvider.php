@@ -80,7 +80,7 @@ class LoggerServiceProvider extends AbstractServiceProvider implements BootableS
 
                 return new Logger($name, $handlers, $processors, $timezone);
             })
-            ->addArgument($this->getContainer()->get(Config::class));
+            ->addArgument(Config::class);
 
         $this->getContainer()->add(LoggerInterface::class, Logger::class);
     }

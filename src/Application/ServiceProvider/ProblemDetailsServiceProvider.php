@@ -38,7 +38,7 @@ class ProblemDetailsServiceProvider extends AbstractServiceProvider
                 ProblemDetailsResponseFactory::class,
                 static fn (ResponseFactoryInterface $responseFactory) => new ProblemDetailsResponseFactory($responseFactory)
             )
-            ->addArgument($this->getContainer()->get(ResponseFactoryInterface::class));
+            ->addArgument(ResponseFactoryInterface::class);
 
         $this
             ->getContainer()
@@ -76,8 +76,8 @@ class ProblemDetailsServiceProvider extends AbstractServiceProvider
                 }
             )
             ->addArguments([
-                $this->getContainer()->get(ProblemDetailsResponseFactory::class),
-                $this->getContainer()->get(LoggerInterface::class)
+                ProblemDetailsResponseFactory::class,
+                LoggerInterface::class
             ]);
     }
 }
