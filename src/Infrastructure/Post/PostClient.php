@@ -9,6 +9,14 @@ use Domain\Shared\Exception\NotFoundException;
 use Infrastructure\Shared\Exception\ClientException;
 use Psr\Http\Client\ClientInterface;
 
+/**
+ * PostClient
+ *
+ * Example Infrastructure client for the bundled demo API — meant to be deleted or replaced once you add your
+ * own domains. The decoded response body is trusted as-is (no shape/type validation) since jsonplaceholder.typicode.com
+ * is a stable fixture; a real client talking to a less predictable upstream should validate it before mapping to
+ * a Domain model.
+ */
 class PostClient implements PostClientInterface, RequestFactoryAwareInterface
 {
 
