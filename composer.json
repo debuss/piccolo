@@ -1,5 +1,6 @@
 {
   "name": "debuss-a/piccolo",
+  "type": "project",
   "description": "A PSR-15 application skeleton built on Laminas Stratigility and Mezzio components, with League Container, attribute-based routing, and a DDD-layered structure.",
   "license": "MIT",
   "keywords": [
