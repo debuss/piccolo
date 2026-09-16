@@ -46,15 +46,19 @@ They are organized in sub-namespaces by concern (e.g. `Application\Handler\Api`,
 **Routing is attribute-based.** Always declare routes with attributes:
 
 ```php
-#[Controller]               // for web routes — no path prefix
-#[ApiController('/api/v1')] // for API routes — applies a prefix to all methods inside
+use Routing\Attribute\{AsController, Get, Post};
 
-#[HttpGet('/posts[/{id:\d+}]', name: 'api.v1.posts.get')]
-#[HttpPost('/posts', name: 'api.v1.posts.create')]
+#[AsController]            // for web routes — no path prefix
+#[AsController('/api/v1')] // for API routes — applies a prefix to all methods inside
+
+#[Get('/posts[/{id:\d+}]', name: 'api.v1.posts.get')]
+#[Post('/posts', name: 'api.v1.posts.create')]
 ```
 
-- Use `#[Controller]` for HTML/generic handlers.
-- Use `#[ApiController('/prefix')]` for API handlers.
+- Every handler with route attributes must have `#[AsController]` (or a custom attribute extending it), otherwise its routes are not loaded.
+- Use `#[AsController]` for HTML/generic handlers and `#[AsController('/prefix')]` for API handlers.
+- Route attributes (`Get`, `Post`, `Put`, `Patch`, `Delete`, `Head`, `Options`, `Route`) must be on public methods of concrete classes.
+- If a short attribute name conflicts with an application class, alias the namespace: `use Routing\Attribute as Http;` then `#[Http\Options(...)]`.
 - Always provide a `name:` argument — it is used for URI generation.
 - The `AttributeRouteLoader` scans `Application\Handler` recursively; there is nothing else to register.
 - If requested, routes can be registered manually in `config/routes.php` instead of using attributes.
