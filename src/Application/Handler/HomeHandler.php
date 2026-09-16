@@ -7,9 +7,9 @@ use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
-use Routing\Attribute\{Controller, HttpGet};
+use Routing\Attribute\{AsController, Get};
 
-#[Controller]
+#[AsController]
 class HomeHandler implements RequestHandlerInterface, LoggerAwareInterface
 {
 
@@ -19,7 +19,7 @@ class HomeHandler implements RequestHandlerInterface, LoggerAwareInterface
         private readonly ?TemplateRendererInterface $template = null
     ) {}
 
-    #[HttpGet('/', name: 'home')]
+    #[Get('/', name: 'home')]
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $this->logger?->info("Home handler started");

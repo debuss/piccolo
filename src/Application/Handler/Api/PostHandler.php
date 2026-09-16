@@ -6,9 +6,9 @@ use Domain\Post\PostClientInterface;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
-use Routing\Attribute\{ApiController, HttpGet};
+use Routing\Attribute\{AsController, Get};
 
-#[ApiController('/api/v1')]
+#[AsController('/api/v1')]
 readonly class PostHandler implements RequestHandlerInterface
 {
 
@@ -16,7 +16,7 @@ readonly class PostHandler implements RequestHandlerInterface
         private PostClientInterface $client
     ) {}
 
-    #[HttpGet('/posts[/{id:\d+}]', name: 'api.v1.posts.get')]
+    #[Get('/posts[/{id:\d+}]', name: 'api.v1.posts.get')]
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $id = $request->getAttribute('id');

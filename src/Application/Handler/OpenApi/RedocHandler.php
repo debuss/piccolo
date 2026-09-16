@@ -7,9 +7,9 @@ use Mezzio\Router\RouterInterface;
 use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
-use Routing\Attribute\{ApiController, HttpGet};
+use Routing\Attribute\{AsController, Get};
 
-#[ApiController('/api/v1')]
+#[AsController('/api/v1')]
 readonly class RedocHandler implements RequestHandlerInterface
 {
 
@@ -18,7 +18,7 @@ readonly class RedocHandler implements RequestHandlerInterface
         private TemplateRendererInterface $renderer
     ) {}
 
-    #[HttpGet('/{redoc:redoc|swagger}', name: 'api.v1.redoc')]
+    #[Get('/{redoc:redoc|swagger}', name: 'api.v1.redoc')]
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         return new HtmlResponse(

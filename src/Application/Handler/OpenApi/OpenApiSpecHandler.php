@@ -5,9 +5,9 @@ namespace Application\Handler\OpenApi;
 use Laminas\Diactoros\Response;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface, StreamFactoryInterface};
 use Psr\Http\Server\RequestHandlerInterface;
-use Routing\Attribute\{ApiController, HttpGet};
+use Routing\Attribute\{AsController, Get};
 
-#[ApiController('/api/v1')]
+#[AsController('/api/v1')]
 readonly class OpenApiSpecHandler implements RequestHandlerInterface
 {
 
@@ -15,7 +15,7 @@ readonly class OpenApiSpecHandler implements RequestHandlerInterface
         private StreamFactoryInterface $streamFactory
     ) {}
 
-    #[HttpGet(path: '/openapi[.{format:yml|yaml}]', name: 'api.v1.openapi')]
+    #[Get(path: '/openapi[.{format:yml|yaml}]', name: 'api.v1.openapi')]
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         return new Response(
