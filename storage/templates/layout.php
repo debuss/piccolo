@@ -3,161 +3,148 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
     <title><?= $this->e($title) ?> - Piccolo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <link href="https://use.fontawesome.com/releases/v5.13.0/css/all.css" rel="stylesheet"/>
+    <!-- Fonts from Google Fonts: remove these 3 lines to fall back to the system fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Newsreader:ital,opsz,wght@1,6..72,400&display=swap" rel="stylesheet">
     <style>
-        .bi {
-            vertical-align: -.125em;
-            fill: currentColor
+        /*
+         * Piccolo is named after the smallest flute of the orchestra: nickel silver keys on a grenadilla wood body.
+         * The palette follows it, with the PHP violet as the only accent.
+         */
+        :root {
+            --paper: #f2f3f5;
+            --ink: #2b1e1a;
+            --muted: #6e6460;
+            --staff: #b9bec6;
+            --accent: #4f5394;
+
+            --sans: "Bricolage Grotesque", system-ui, sans-serif;
+            --serif: "Newsreader", Georgia, serif;
+            --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+            --gutter: clamp(1.25rem, 5vw, 4rem);
         }
 
-        .nav-scroller .nav {
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --paper: #1f1715;
+                --ink: #edeef0;
+                --muted: #a79e9a;
+                --staff: #4b403c;
+                --accent: #a6aae0;
+            }
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
             display: flex;
-            flex-wrap: nowrap;
-            padding-bottom: 1rem;
-            margin-top: -1px;
-            overflow-x: auto;
-            text-align: center;
+            flex-direction: column;
+            background: var(--paper);
+            color: var(--ink);
+            font: 400 1.0625rem/1.6 var(--sans);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration-thickness: 1px;
+            text-underline-offset: .2em;
+        }
+
+        a:hover {
+            text-decoration-thickness: 2px;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+            border-radius: 2px;
+        }
+
+        code {
+            font: .9em var(--mono);
+        }
+
+        .site-header,
+        .site-main,
+        .site-footer {
+            width: 100%;
+            max-width: 72rem;
+            margin: 0 auto;
+            padding-inline: var(--gutter);
+        }
+
+        .site-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding-block: 1.75rem;
+        }
+
+        .site-header {
+            gap: 1rem;
+        }
+
+        .site-nav {
+            display: flex;
+            gap: 1.5rem;
             white-space: nowrap;
-            -webkit-overflow-scrolling: touch
         }
 
-        .btn-bd-primary {
-            --bd-violet-bg: #712cf9;
-            --bd-violet-rgb: 112.520718, 44.062154, 249.437846;
-            --bs-btn-font-weight: 600;
-            --bs-btn-color: var(--bs-white);
-            --bs-btn-bg: var(--bd-violet-bg);
-            --bs-btn-border-color: var(--bd-violet-bg);
-            --bs-btn-hover-color: var(--bs-white);
-            --bs-btn-hover-bg: #6528e0;
-            --bs-btn-hover-border-color: #6528e0;
-            --bs-btn-focus-shadow-rgb: var(--bd-violet-rgb);
-            --bs-btn-active-color: var(--bs-btn-hover-color);
-            --bs-btn-active-bg: #5a23c8;
-            --bs-btn-active-border-color: #5a23c8
+        @media (max-width: 30rem) {
+            .site-nav {
+                gap: 1rem;
+                font-size: .9375rem;
+            }
         }
 
-        .bd-mode-toggle {
-            z-index: 1500
+        .wordmark {
+            color: var(--ink);
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -.02em;
+            text-decoration: none;
         }
 
-        .bd-mode-toggle .bi {
-            width: 1em;
-            height: 1em
+        .site-main {
+            flex: 1;
         }
 
-        .bd-mode-toggle .dropdown-menu .active .bi {
-            display: block !important
+        .site-footer {
+            padding-block: 3rem 2rem;
+            color: var(--muted);
+            font-size: .9375rem;
         }
     </style>
     <?= $this->section('stylesheets') ?>
-    <script src="https://getbootstrap.com/docs/5.3/assets/js/color-modes.js"></script>
 </head>
 <body>
-<svg xmlns="http://www.w3.org/2000/svg" class="d-none">
-    <symbol id="check2" viewBox="0 0 16 16">
-        <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"></path>
-    </symbol>
-    <symbol id="circle-half" viewBox="0 0 16 16">
-        <path d="M8 15A7 7 0 1 0 8 1v14zm0 1A8 8 0 1 1 8 0a8 8 0 0 1 0 16z"></path>
-    </symbol>
-    <symbol id="moon-stars-fill" viewBox="0 0 16 16">
-        <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"></path>
-        <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.734 1.734 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.734 1.734 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.734 1.734 0 0 0 1.097-1.097l.387-1.162zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L13.863.1z"></path>
-    </symbol>
-    <symbol id="sun-fill" viewBox="0 0 16 16">
-        <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"></path>
-    </symbol>
-    <symbol id="chevron-right" viewBox="0 0 16 16">
-        <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"></path>
-    </symbol>
-</svg>
-<div class="dropdown position-fixed bottom-0 end-0 mb-3 me-3 bd-mode-toggle">
-    <button class="btn btn-bd-primary py-2 dropdown-toggle d-flex align-items-center" id="bd-theme" type="button"
-            aria-expanded="false" data-bs-toggle="dropdown" aria-label="Toggle theme (light)">
-        <svg class="bi my-1 theme-icon-active" aria-hidden="true">
-            <use href="#sun-fill"></use>
-        </svg>
-        <span class="visually-hidden" id="bd-theme-text">Toggle theme</span></button>
-    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="bd-theme-text" style="">
-        <li>
-            <button type="button" class="dropdown-item d-flex align-items-center active" data-bs-theme-value="light"
-                    aria-pressed="true">
-                <svg class="bi me-2 opacity-50" aria-hidden="true">
-                    <use href="#sun-fill"></use>
-                </svg>
-                Light
-                <svg class="bi ms-auto d-none" aria-hidden="true">
-                    <use href="#check2"></use>
-                </svg>
-            </button>
-        </li>
-        <li>
-            <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="dark"
-                    aria-pressed="false">
-                <svg class="bi me-2 opacity-50" aria-hidden="true">
-                    <use href="#moon-stars-fill"></use>
-                </svg>
-                Dark
-                <svg class="bi ms-auto d-none" aria-hidden="true">
-                    <use href="#check2"></use>
-                </svg>
-            </button>
-        </li>
-        <li>
-            <button type="button" class="dropdown-item d-flex align-items-center" data-bs-theme-value="auto"
-                    aria-pressed="false">
-                <svg class="bi me-2 opacity-50" aria-hidden="true">
-                    <use href="#circle-half"></use>
-                </svg>
-                Auto
-                <svg class="bi ms-auto d-none" aria-hidden="true">
-                    <use href="#check2"></use>
-                </svg>
-            </button>
-        </li>
-    </ul>
-</div>
-<nav class="navbar navbar-expand-md navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/">Piccolo</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
-                aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarCollapse">
-            <ul class="navbar-nav me-auto mb-2 mb-md-0">
-                <li class="nav-item"><a class="nav-link" href="#" target="_blank">Documentation</a></li>
-                <li class="nav-item"><a class="nav-link" href="#" target="_blank">Contribute</a></li>
-                <li class="nav-item"><a class="nav-link disabled">|</a></li>
-                <li class="nav-item"><a class="nav-link" href="/api/v1/swagger" target="_blank">API Doc</a></li>
-                <li class="nav-item"><a class="nav-link" href="/api/ping" target="_blank">Ping Test</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
-<div class="container-fluid">
+<header class="site-header">
+    <a class="wordmark" href="/">piccolo</a>
+    <nav class="site-nav" aria-label="Main">
+        <a href="/api/v1/redoc" target="_blank" rel="noopener">API reference</a>
+        <a href="/api/ping" target="_blank" rel="noopener">Ping</a>
+        <a href="https://github.com/debuss/piccolo" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+</header>
+<main class="site-main">
     <?= $this->section('content') ?>
-</div>
-<footer class="py-3 my-4">
-    <div class="container-fluid">
-        <hr/>
-        <?php if ($this->section('footer')): ?>
-            <?= $this->section('footer') ?>
-        <?php else: ?>
-            <p class="text-center text-body-secondary">
-                &copy; <?= date('Y') ?> <a href="https://github.com/debuss/piccolo/">Piccolo</a><br />
-            </p>
-        <?php endif ?>
-    </div>
+</main>
+<footer class="site-footer">
+    <?php if ($this->section('footer')): ?>
+        <?= $this->section('footer') ?>
+    <?php else: ?>
+        <p>Piccolo, a PSR-15 application skeleton.</p>
+    <?php endif ?>
 </footer>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-        crossorigin="anonymous"></script>
-
 <?= $this->section('javascript') ?>
 </body>
 </html>

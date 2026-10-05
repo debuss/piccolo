@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Application\Middleware;
 
@@ -14,7 +14,7 @@ use Psr\Http\Server\{MiddlewareInterface, RequestHandlerInterface};
  * ProblemDetailsMiddleware when testing on a web browser, which usually sends `text/html` as the default `Accept`
  * header.
  */
-class ApiAcceptHeaderMiddleware implements MiddlewareInterface
+readonly class ApiAcceptHeaderMiddleware implements MiddlewareInterface
 {
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface

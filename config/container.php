@@ -1,11 +1,7 @@
 <?php declare(strict_types=1);
 
 use Awareness\ContainerAwareInterface;
-use Application\ServiceProvider\{CacheServiceProvider,
-    ClientServiceProvider,
-    ConfigurationServiceProvider,
-    DatabaseServiceProvider,
-    ErrorHandlerServiceProvider,
+use Application\ServiceProvider\{ErrorHandlerServiceProvider,
     FastRouteRouterServiceProvider,
     HttpFactoryServiceProvider,
     LoggerServiceProvider,
@@ -14,8 +10,16 @@ use Application\ServiceProvider\{CacheServiceProvider,
     TemplateRendererServiceProvider};
 use League\Container\{Container, ReflectionContainer};
 use Domain\Post\PostClientInterface;
+use Http\Client\Curl\Client;
 use Infrastructure\Post\PostClient;
+use Laminas\Diactoros\{RequestFactory,
+    ResponseFactory,
+    ServerRequestFactory,
+    StreamFactory,
+    UploadedFileFactory,
+    UriFactory};
 use Psr\Container\ContainerInterface;
+use Psr\Http\Client\ClientInterface;
 
 /*
  * ------------------------------------------
@@ -50,16 +54,19 @@ $container->add(ContainerInterface::class, $container);
  * For more information on service providers : https://container.thephpleague.com/5.x/service-providers/
  */
 
-$container->addServiceProvider(new HttpFactoryServiceProvider());
-$container->addServiceProvider(new ConfigurationServiceProvider());
+$container->addServiceProvider(new HttpFactoryServiceProvider(
+    new RequestFactory(),
+    new ResponseFactory(),
+    new ServerRequestFactory(),
+    new StreamFactory(),
+    new UploadedFileFactory(),
+    new UriFactory()
+));
 $container->addServiceProvider(new LoggerServiceProvider());
 $container->addServiceProvider(new RequestHandlerRunnerServiceProvider());
 $container->addServiceProvider(new FastRouteRouterServiceProvider());
 $container->addServiceProvider(new ErrorHandlerServiceProvider());
-$container->addServiceProvider(new DatabaseServiceProvider());
 $container->addServiceProvider(new TemplateRendererServiceProvider());
-$container->addServiceProvider(new CacheServiceProvider());
-$container->addServiceProvider(new ClientServiceProvider());
 $container->addServiceProvider(new ProblemDetailsServiceProvider());
 
 /*
@@ -75,6 +82,7 @@ $container->addServiceProvider(new ProblemDetailsServiceProvider());
  * For more information on definitions : https://container.thephpleague.com/5.x/definitions/
  */
 
+$container->add(ClientInterface::class, Client::class);
 $container->add(PostClientInterface::class, PostClient::class);
 
 /*

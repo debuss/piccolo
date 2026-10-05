@@ -2,12 +2,12 @@
 
 namespace Application\ServiceProvider;
 
-use Laminas\Diactoros\{ResponseFactory, ServerRequestFactory};
+use Application\Http\{ServerRequestCreator, ServerRequestErrorResponseGenerator};
 use Laminas\HttpHandlerRunner\{Emitter\SapiEmitter, RequestHandlerRunner, RequestHandlerRunnerInterface};
 use Laminas\Stratigility\{MiddlewarePipeInterface, MiddlewarePipe};
 use League\Container\ServiceProvider\AbstractServiceProvider;
-use Psr\Container\{ContainerExceptionInterface, NotFoundExceptionInterface};
-use Psr\Http\Message\{ResponseInterface, ServerRequestFactoryInterface, ServerRequestInterface};
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Throwable;
 
 /**
@@ -30,13 +30,10 @@ class RequestHandlerRunnerServiceProvider extends AbstractServiceProvider
 
     /**
      * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      */
     public function register(): void
     {
         // Using this pipeline here for both definitions as it will be loaded by RequestHandlerRunner and Application.
-        // The pipeline needs to be shared in order to inject middlewares from Application class, then used in
-        // RequestHandlerRunner::run().
         $pipeline = new MiddlewarePipe();
 
         $this->container->add(MiddlewarePipe::class, $pipeline);
@@ -49,20 +46,13 @@ class RequestHandlerRunnerServiceProvider extends AbstractServiceProvider
             ->add(RequestHandlerRunner::class)
             ->addArgument($pipeline)
             ->addArgument(new SapiEmitter)
-            ->addArgument(static function () use ($container): ServerRequestInterface {
-                $serverRequestFactory = $container->get(ServerRequestFactoryInterface::class);
-
-                return $serverRequestFactory::fromGlobals();
-            })
-            ->addArgument(static function (Throwable $e): ResponseInterface {
-                $response = (new ResponseFactory())->createResponse(500);
-                $response->getBody()->write(sprintf(
-                    'An error occurred: %s',
-                    $e->getMessage()
-                ));
-
-                return $response;
-            });
+            ->addArgument(
+                static fn (): ServerRequestInterface => $container->get(ServerRequestCreator::class)->fromGlobals()
+            )
+            // Only resolved when the server request cannot be created, to avoid building its dependencies on each request
+            ->addArgument(
+                static fn (Throwable $e): ResponseInterface => $container->get(ServerRequestErrorResponseGenerator::class)($e)
+            );
 
         $this
             ->getContainer()

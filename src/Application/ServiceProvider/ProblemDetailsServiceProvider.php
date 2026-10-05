@@ -2,14 +2,11 @@
 
 namespace Application\ServiceProvider;
 
-use Application\Http\ProblemDetails\{ExceptionStatusMapper, MappingProblemDetailsResponseFactory};
+use Application\Environment;
+use Application\Http\ErrorLogListener;
 use League\Container\ServiceProvider\AbstractServiceProvider;
 use Mezzio\ProblemDetails\{ProblemDetailsMiddleware, ProblemDetailsResponseFactory};
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Container\NotFoundExceptionInterface;
-use Psr\Log\LoggerInterface;
-use Psr\Http\Message\{ResponseFactoryInterface, ResponseInterface, ServerRequestInterface};
-use Throwable;
+use Psr\Http\Message\ResponseFactoryInterface;
 
 /**
  * Problem Details Service Provider
@@ -22,70 +19,41 @@ class ProblemDetailsServiceProvider extends AbstractServiceProvider
     public function provides(string $id): bool
     {
         return in_array($id, [
-            ExceptionStatusMapper::class,
             ProblemDetailsResponseFactory::class,
             ProblemDetailsMiddleware::class
         ]);
     }
 
-    /**
-     * @throws NotFoundExceptionInterface
-     * @throws ContainerExceptionInterface
-     */
     public function register(): void
     {
-        $this->getContainer()->add(ExceptionStatusMapper::class);
-
+        // Exceptions that do not implement ProblemDetailsExceptionInterface become a 500 response, their message and
+        // trace are only exposed in debug mode (outside of production).
         $this
             ->getContainer()
             ->add(
                 ProblemDetailsResponseFactory::class,
-                static fn (ResponseFactoryInterface $responseFactory, ExceptionStatusMapper $mapper) =>
-                    new MappingProblemDetailsResponseFactory($responseFactory, $mapper)
+                static fn (ResponseFactoryInterface $responseFactory, Environment $environment) =>
+                    new ProblemDetailsResponseFactory($responseFactory, isDebug: !$environment->isProduction())
             )
             ->addArguments([
                 ResponseFactoryInterface::class,
-                ExceptionStatusMapper::class
+                Environment::class
             ]);
 
         $this
             ->getContainer()
             ->add(
                 ProblemDetailsMiddleware::class,
-                static function (ProblemDetailsResponseFactory $factory, LoggerInterface $logger) {
+                static function (ProblemDetailsResponseFactory $factory, ErrorLogListener $listener) {
                     $middleware = new ProblemDetailsMiddleware($factory);
-
-                    $middleware->attachListener(
-                        static function (Throwable $error, ServerRequestInterface $request, ResponseInterface $response) use ($logger) {
-                            $logger->error($error->getMessage(), [
-                                'exception' => $error,
-                                'request' => [
-                                    'method' => $request->getMethod(),
-                                    'uri' => (string)$request->getUri(),
-                                    'script' => $request->getServerParams()['SCRIPT_NAME'] ?? '',
-                                    'headers' => $request->getHeaders(),
-                                    'cookies' => $request->getCookieParams(),
-                                    'attributes' => $request->getAttributes(),
-                                    'query_params' => $request->getQueryParams(),
-                                    'body_params' => $request->getParsedBody(),
-                                ],
-                                'response' => [
-                                    'code' => $response->getStatusCode(),
-                                    'headers' => $response->getHeaders(),
-                                    'body' => $response->getBody()->getContents()
-                                ]
-                            ]);
-
-                            $response->getBody()->rewind(); // Rewind the response body to allow further reading
-                        }
-                    );
+                    $middleware->attachListener($listener);
 
                     return $middleware;
                 }
             )
             ->addArguments([
                 ProblemDetailsResponseFactory::class,
-                LoggerInterface::class
+                ErrorLogListener::class
             ]);
     }
 }

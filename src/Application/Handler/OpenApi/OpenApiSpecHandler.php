@@ -2,28 +2,22 @@
 
 namespace Application\Handler\OpenApi;
 
-use Laminas\Diactoros\Response;
-use Psr\Http\Message\{ResponseInterface, ServerRequestInterface, StreamFactoryInterface};
-use Psr\Http\Server\RequestHandlerInterface;
+use Application\Handler\Handler;
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Routing\Attribute\{AsController, Get};
 
 #[AsController('/api/v1')]
-readonly class OpenApiSpecHandler implements RequestHandlerInterface
+class OpenApiSpecHandler extends Handler
 {
-
-    public function __construct(
-        private StreamFactoryInterface $streamFactory
-    ) {}
 
     #[Get(path: '/openapi[.{format:yml|yaml}]', name: 'api.v1.openapi')]
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        return new Response(
-            $this->streamFactory->createStreamFromFile(storage_path('openapi.yaml')),
-            headers: [
-                'Content-Type' => 'text/yaml',
-                'Expires' => gmdate('D, d M Y H:i:s \G\M\T', strtotime('+1 HOUR')),
-            ]
-        );
+        return $this->responseFactory->createResponse(200)
+            ->withBody(
+                $this->streamFactory->createStreamFromFile(storage_path('openapi.yaml'))
+            )
+            ->withHeader('Content-Type', 'text/yaml')
+            ->withHeader('Expires', gmdate('D, d M Y H:i:s \G\M\T', strtotime('+1 HOUR')));
     }
 }
