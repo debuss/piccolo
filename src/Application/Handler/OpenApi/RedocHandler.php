@@ -6,11 +6,10 @@ use Application\Handler\Handler;
 use Mezzio\Router\RouterInterface;
 use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Psr\Http\Server\RequestHandlerInterface;
 use Routing\Attribute\{AsController, Get};
 
 #[AsController('/api/v1')]
-class RedocHandler extends Handler implements RequestHandlerInterface
+class RedocHandler extends Handler
 {
 
     public function __construct(

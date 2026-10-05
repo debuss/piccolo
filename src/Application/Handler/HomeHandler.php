@@ -6,14 +6,13 @@ use Application\Environment;
 use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Psr\Http\Server\RequestHandlerInterface;
 use Routing\Attribute\{AsController, Get};
 
 /**
  * Welcome page: this handler and storage/templates/home-page.php can be deleted once you no longer need them.
  */
 #[AsController]
-class HomeHandler extends Handler implements RequestHandlerInterface, LoggerAwareInterface
+class HomeHandler extends Handler implements LoggerAwareInterface
 {
 
     use LoggerAwareTrait;

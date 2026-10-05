@@ -4,10 +4,9 @@ namespace Application\Handler\HealthCheck;
 
 use Application\Handler\Handler;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Psr\Http\Server\RequestHandlerInterface;
 use function time;
 
-class PingHandler extends Handler implements RequestHandlerInterface
+class PingHandler extends Handler
 {
 
     public function handle(ServerRequestInterface $request): ResponseInterface

@@ -43,12 +43,14 @@ src/
 
 ## Handlers
 
-Handlers implement `Psr\Http\Server\RequestHandlerInterface` and live in `src/Application/Handler`.  
+Handlers are `Psr\Http\Server\RequestHandlerInterface` and live in `src/Application/Handler`.  
 They are organized in sub-namespaces by concern (e.g. `Application\Handler\Api`, `Application\Handler\HealthCheck`, `Application\Handler\OpenApi`).
 
-Handlers extend `Application\Handler\Handler`, which builds responses with the PSR-17 factories (injected through the
-Awareness pattern): use `$this->json($data, $status)` and `$this->html($content, $status)`, or
-`$this->responseFactory` / `$this->streamFactory` for other responses.
+Handlers extend the abstract `Application\Handler\Handler` (which implements `RequestHandlerInterface`, so only
+`handle()` has to be written). It builds responses with the PSR-17 factories (injected through the Awareness pattern):
+use `$this->json($data, $status)` and `$this->html($content, $status)`, or `$this->responseFactory` /
+`$this->streamFactory` for other responses. `json()` lets `JsonException` bubble up when the data cannot be encoded.
+In unit tests, set the factories with `setResponseFactory()` / `setStreamFactory()`, as the container does.
 Never instantiate response classes of a PSR-7 implementation (e.g. `Laminas\Diactoros\Response\JsonResponse`): the
 implementation is only chosen in `config/container.php`.
 
@@ -144,7 +146,7 @@ Usage pattern:
 use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Awareness\{RequestFactoryAwareInterface, RequestFactoryAwareTrait};
 
-class MyHandler implements RequestHandlerInterface, LoggerAwareInterface, RequestFactoryAwareInterface
+class MyHandler extends Handler implements LoggerAwareInterface, RequestFactoryAwareInterface
 {
     use LoggerAwareTrait;
     use RequestFactoryAwareTrait;

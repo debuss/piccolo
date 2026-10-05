@@ -7,11 +7,10 @@ use Domain\Post\PostClientInterface;
 use Domain\Shared\Exception\NotFoundException;
 use Mezzio\ProblemDetails\ProblemDetailsResponseFactory;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Psr\Http\Server\RequestHandlerInterface;
 use Routing\Attribute\{AsController, Get};
 
 #[AsController('/api/v1')]
-class PostHandler extends Handler implements RequestHandlerInterface
+class PostHandler extends Handler
 {
 
     public function __construct(

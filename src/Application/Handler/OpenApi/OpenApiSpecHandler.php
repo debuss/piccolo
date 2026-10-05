@@ -4,11 +4,10 @@ namespace Application\Handler\OpenApi;
 
 use Application\Handler\Handler;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Psr\Http\Server\RequestHandlerInterface;
 use Routing\Attribute\{AsController, Get};
 
 #[AsController('/api/v1')]
-class OpenApiSpecHandler extends Handler implements RequestHandlerInterface
+class OpenApiSpecHandler extends Handler
 {
 
     #[Get(path: '/openapi[.{format:yml|yaml}]', name: 'api.v1.openapi')]
