@@ -24,7 +24,7 @@ class TemplateRendererServiceProvider extends AbstractServiceProvider
     {
         $this
             ->getContainer()
-            ->add(TemplateRendererInterface::class, function (): TemplateRendererInterface {
+            ->add(TemplateRendererInterface::class, static function (): TemplateRendererInterface {
                 $plates = new Engine();
                 $plates->addFolder('app', storage_path('templates'));
 
