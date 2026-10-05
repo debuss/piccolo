@@ -1,7 +1,7 @@
 # Copilot Instructions
 
 Piccolo is a PHP 8.4+ application skeleton built on Laminas Stratigility, Mezzio Router, and League Container.
-It follows Domain-Driven Design conventions and PSR standards throughout (PSR-3, PSR-6, PSR-7, PSR-11, PSR-15, PSR-16, PSR-17, PSR-18).
+It follows Domain-Driven Design conventions and PSR standards throughout (PSR-3, PSR-7, PSR-11, PSR-15, PSR-17, PSR-18).
 
 Read these instructions before suggesting or generating any code.
 
@@ -21,7 +21,9 @@ src/
 **Rules — never break them:**
 - `Domain` must not depend on `Application` or `Infrastructure`.
 - `Infrastructure` may depend on `Domain` only.
-- `Application` may depend on `Domain` interfaces; it must not instantiate `Infrastructure` classes directly.
+- `Application` may depend on `Domain` (interfaces, models, exceptions); it must not use `Infrastructure` classes at all.
+- Infrastructure implementations are only wired to Domain interfaces in `config/container.php` (the composition root).
+- These rules are enforced by the architecture tests in `tests/ArchitectureTest.php`.
 - Shared cross-domain concepts (e.g. `PageResult`, `NotFoundException`) belong in `Domain\Shared`, not in any specific domain namespace.
 
 ---
@@ -30,11 +32,12 @@ src/
 
 - Every PHP file must start with `<?php declare(strict_types=1);`.
 - Use `final readonly class` for domain value objects and models.
-- Use `readonly class` for handlers and infrastructure classes that are not extended.
+- Use `readonly class` for infrastructure classes and middleware that are not extended. Handlers extending the base
+  `Handler` class cannot be readonly (see [Handlers](#handlers)).
 - Constructor property promotion is the standard; never declare properties separately unless unavoidable.
 - Always use named arguments for clarity when calling factory methods with multiple parameters.
 - Prefer `match` over `switch`. Prefer early returns over nested `if` blocks.
-- Never suppress exceptions silently except in health check probes.
+- Never suppress exceptions silently.
 
 ---
 
@@ -42,6 +45,12 @@ src/
 
 Handlers implement `Psr\Http\Server\RequestHandlerInterface` and live in `src/Application/Handler`.  
 They are organized in sub-namespaces by concern (e.g. `Application\Handler\Api`, `Application\Handler\HealthCheck`, `Application\Handler\OpenApi`).
+
+Handlers extend `Application\Handler\Handler`, which builds responses with the PSR-17 factories (injected through the
+Awareness pattern): use `$this->json($data, $status)` and `$this->html($content, $status)`, or
+`$this->responseFactory` / `$this->streamFactory` for other responses.
+Never instantiate response classes of a PSR-7 implementation (e.g. `Laminas\Diactoros\Response\JsonResponse`): the
+implementation is only chosen in `config/container.php`.
 
 **Routing is attribute-based.** Always declare routes with attributes:
 
@@ -125,8 +134,8 @@ Available interfaces (all auto-injected via existing hooks):
 | `RequestFactoryAwareInterface` | `setRequestFactory()` | `HttpFactoryServiceProvider` |
 | `StreamFactoryAwareInterface` | `setStreamFactory()` | `HttpFactoryServiceProvider` |
 | `ServerRequestFactoryAwareInterface` | `setServerRequestFactory()` | `HttpFactoryServiceProvider` |
-| `CacheItemPoolAwareInterface` | `setCacheItemPool()` | `CacheServiceProvider` |
-| `CacheAwareInterface` | `setCache()` | `CacheServiceProvider` |
+| `UriFactoryAwareInterface` | `setUriFactory()` | `HttpFactoryServiceProvider` |
+| `UploadedFileFactoryAwareInterface` | `setUploadedFileFactory()` | `HttpFactoryServiceProvider` |
 | `ContainerAwareInterface` | `setContainer()` | `config/container.php` |
 
 Usage pattern:
@@ -206,22 +215,28 @@ They must not reference `Application` or `Infrastructure` classes.
 
 namespace Domain\Post;
 
+use Domain\Shared\Exception\NotFoundException;
+
 interface PostClientInterface
 {
     /** @return Post[] */
     public function getAll(): array;
 
+    /** @throws NotFoundException When no post exists with this id */
     public function getById(int $id): Post;
 }
 ```
+
+Document the Domain exceptions a method can throw with `@throws`: they are part of the contract the `Application`
+layer relies on.
 
 ---
 
 ## Exceptions
 
 Domain and Infrastructure exceptions are plain `RuntimeException`s — they must not know about HTTP, status codes, or
-`ProblemDetailsExceptionInterface`. Mapping an exception to an HTTP response is an `Application` (delivery) concern,
-handled by `ExceptionStatusMapper` — see [Error handling](#error-handling) below.
+`ProblemDetailsExceptionInterface`. Translating an exception into an HTTP response is an `Application` (delivery)
+concern, done by the handler that knows what the exception means — see [Error handling](#error-handling) below.
 
 - `Domain\Shared\Exception\NotFoundException` — thrown when a requested resource does not exist. Reusable across
   domains; exposes `static create(string $resource, int|string $id): self`.
@@ -233,9 +248,8 @@ If the exception semantics are specific to one domain, create it in `Domain\{Con
 If it can be reused across domains, put it in `Domain\Shared\Exception` (or `Infrastructure\Shared\Exception` for
 infrastructure-only failures with no domain meaning).
 
-**When adding a new exception that should map to a non-500 status:** register it in
-`ExceptionStatusMapper`'s `$map` (`src/Application/Http/ProblemDetails/ExceptionStatusMapper.php`) — do not add HTTP
-concerns back onto the exception class itself.
+**When a new exception should result in a non-500 status:** catch it in the handler and return the matching
+response — do not add HTTP concerns back onto the exception class itself.
 
 ---
 
@@ -298,32 +312,60 @@ $container->add(PostClientInterface::class, PostClient::class);
 
 - **HTML errors**: Stratigility `ErrorHandler` with its `ErrorResponseGenerator`: the exception (message and trace) is
   displayed outside production, only the reason phrase in production. Controlled by `APP_ENV`.
-- **API errors**: `ProblemDetailsMiddleware` is scoped to `/api` in the pipeline. It uses `MappingProblemDetailsResponseFactory`
-  (`src/Application/Http/ProblemDetails/MappingProblemDetailsResponseFactory.php`), which consults `ExceptionStatusMapper`
-  to turn a plain Domain/Infrastructure exception into the right status/title, then falls back to the stock
-  `ProblemDetailsResponseFactory` behavior (500, generic detail) for anything unmapped. Only reach for
-  `ProblemDetailsExceptionInterface` directly if an exception needs response fields the mapper can't express
-  (e.g. per-instance `additional` data) — the mapper is the default path.
-- **Logging**: Both `ErrorHandler` and `ProblemDetailsMiddleware` attach a listener that calls `$logger->error(...)` with full request/response context.
+- **API errors**: `ProblemDetailsMiddleware` is scoped to `/api` in the pipeline and uses the stock
+  `ProblemDetailsResponseFactory`: any exception becomes a generic 500, with the exception details only outside
+  production.
+- **Domain exceptions**: the handler catches the Domain exceptions it can translate into a meaningful response and
+  returns it with the `ProblemDetailsResponseFactory` (injected in the constructor), e.g. in `PostHandler`:
 
-Do not wrap handler logic in `try/catch` to build HTTP responses — throw `NotFoundException` or `ClientException` from the domain/infrastructure layer and let the middleware pipeline convert them.
+  ```php
+  try {
+      return $this->json($this->client->getById((int)$id));
+  } catch (NotFoundException $e) {
+      return $this->problemDetails->createResponse($request, 404, $e->getMessage());
+  }
+  ```
+
+  Only catch the exceptions the handler knows the meaning of, let everything else bubble up to the middleware.
+  Never catch `Infrastructure` exceptions in `Application` (e.g. `ClientException`): they become a generic 500.
+- **Logging**: `ErrorHandler` and `ProblemDetailsMiddleware` share `Application\Http\ErrorLogListener`, which only logs
+  the request method, the original URI and the response status. Never log request headers, cookies or body: they can
+  contain credentials (Authorization header, session cookie, password, ...).
+- **Server request creation errors** (invalid header, malformed uploaded files, ...) happen before the pipeline and are
+  handled by `Application\Http\ServerRequestErrorResponseGenerator` (logged, 400 response).
 
 ---
 
 ## Configuration
 
-Configuration is loaded by `borschphp/config` via `ConfigurationServiceProvider`.  
+Configuration is loaded once by `bootstrap/app.php` from `config/configuration.php` (`borschphp/config`), then added
+to the container. Sources are merged in order, the last one wins:
+
+1. the `.env` file, optional (copy from `.env.example`)
+2. the real environment variables
+
 Inject `Config $config` in any constructor — it is autowired:
 
 ```php
-$config->get('APP_ENV');
 $config->getOrDefault('APP_URL', 'http://localhost:8080');
 ```
 
-Environment variables are declared in `.env` (copy from `.env.example`).  
+**Never read `APP_ENV` directly.** Depend on the `Application\Environment` enum (also autowired) instead:
+
+```php
+public function __construct(private Environment $environment) {}
+
+if ($this->environment->isProduction()) { /* ... */ }
+```
+
+`bootstrap/app.php` is also where the PHP runtime settings depending on the configuration are applied
+(`display_errors`, timezone from `TIMEZONE`).  
 In production, set `APP_ENV=production` as a real server environment variable rather than relying on `.env`.
 
-Other configuration source are available in `borschphp/config`:
+Logging is configured with environment variables: `LOG_STREAM` (`php://stderr` by default, or a file path relative to
+the app root) and `LOG_LEVEL` (`debug` by default, `info` in production).
+
+Other configuration sources are available in `borschphp/config` (add them in `config/configuration.php`):
 - ini files
 - JSON files
 - YAML files
@@ -350,7 +392,8 @@ Globally available (loaded via `bootstrap/helpers.php`):
 
 - Middleware order in `config/pipeline.php` is significant — never reorder without understanding side effects.
 - Middlewares are executed in the order they are declared, and the request flows from top to bottom.
-- `ErrorHandler` must always be **first** (outermost).
+- `ErrorHandler` must always be **first** (outermost), followed by `OriginalMessages` (keeps the original URI, as
+  middleware piped on a path only see the URI without that path prefix).
 - `ProblemDetailsMiddleware` is scoped to `/api` — do not move it to the global scope.
 - Additional middleware should be path-scoped where possible.
 
@@ -358,7 +401,8 @@ Globally available (loaded via `bootstrap/helpers.php`):
 
 ## Testing
 
-Pest is the test framework (`pestphp/pest`). Tests live in `tests/`.
+Pest is the test framework (`pestphp/pest`). Tests live in `tests/`, unit tests mirror the `src/` structure in
+`tests/Unit`, and `tests/ArchitectureTest.php` enforces the layer boundaries.
 
 ```bash
 ./vendor/bin/pest
@@ -369,9 +413,12 @@ Pest is the test framework (`pestphp/pest`). Tests live in `tests/`.
 ## Do not do
 
 - Do not omit `declare(strict_types=1)` from any PHP source file in `src/`.
-- Do not import `Infrastructure` classes directly inside `Application` handlers — always depend on Domain interfaces.
+- Do not import `Infrastructure` classes anywhere in `Application` — always depend on Domain interfaces.
+- Do not use classes of a specific PSR-7 implementation (e.g. Diactoros) outside `config/container.php` — use the PSR-17
+  factories.
+- Do not log request headers, cookies or body.
 - Do not use `Logger::class` directly where `LoggerInterface::class` is sufficient.
 - Do not resolve container entries eagerly inside service provider `register()` — prefer lazy `addArgument()` chains.
-- Do not suppress exceptions with empty `catch` blocks (health check probes are the only accepted exception).
+- Do not suppress exceptions with empty `catch` blocks.
 - Do not add a route to `config/routes.php` for a handler that already declares routing attributes — it will throw an exception.
 - Do not place domain types or shared concepts in the `Application` namespace.
