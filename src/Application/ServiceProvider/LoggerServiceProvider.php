@@ -59,7 +59,6 @@ class LoggerServiceProvider extends AbstractServiceProvider implements BootableS
             ->add(Logger::class, static function (Config $config, Environment $environment): Logger {
                 $level = Level::fromName($config->getOrDefault('LOG_LEVEL', $environment->isProduction() ? 'info' : 'debug'));
 
-                // php://stderr rather than php://stdout, which is the response body with some SAPIs (CGI)
                 $stream = $config->getOrDefault('LOG_STREAM', 'php://stderr');
                 if (!str_contains($stream, '://') && !preg_match('#^([a-z]:)?[\\\\/]#i', $stream)) {
                     $stream = app_path($stream);
