@@ -13,6 +13,12 @@ use League\Container\{Container, ReflectionContainer};
 use Domain\Post\PostClientInterface;
 use Http\Client\Curl\Client;
 use Infrastructure\Post\PostClient;
+use Laminas\Diactoros\{RequestFactory,
+    ResponseFactory,
+    ServerRequestFactory,
+    StreamFactory,
+    UploadedFileFactory,
+    UriFactory};
 use Psr\Container\ContainerInterface;
 use Psr\Http\Client\ClientInterface;
 
@@ -49,7 +55,14 @@ $container->add(ContainerInterface::class, $container);
  * For more information on service providers : https://container.thephpleague.com/5.x/service-providers/
  */
 
-$container->addServiceProvider(new HttpFactoryServiceProvider());
+$container->addServiceProvider(new HttpFactoryServiceProvider(
+    new RequestFactory(),
+    new ResponseFactory(),
+    new ServerRequestFactory(),
+    new StreamFactory(),
+    new UploadedFileFactory(),
+    new UriFactory()
+));
 $container->addServiceProvider(new ConfigurationServiceProvider());
 $container->addServiceProvider(new LoggerServiceProvider());
 $container->addServiceProvider(new RequestHandlerRunnerServiceProvider());

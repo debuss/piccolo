@@ -2,7 +2,6 @@
 
 namespace Application\Handler;
 
-use Laminas\Diactoros\Response\{HtmlResponse, JsonResponse};
 use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
@@ -10,7 +9,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Routing\Attribute\{AsController, Get};
 
 #[AsController]
-class HomeHandler implements RequestHandlerInterface, LoggerAwareInterface
+class HomeHandler extends Handler implements RequestHandlerInterface, LoggerAwareInterface
 {
 
     use LoggerAwareTrait;
@@ -57,12 +56,12 @@ class HomeHandler implements RequestHandlerInterface, LoggerAwareInterface
         ];
 
         if ($this->template === null) {
-            return new JsonResponse($data);
+            return $this->json($data);
         }
 
         $data['templateName'] = 'Plates';
         $data['templateDocs'] = 'https://platesphp.com/';
 
-        return new HtmlResponse($this->template->render('app::home-page', $data));
+        return $this->html($this->template->render('app::home-page', $data));
     }
 }

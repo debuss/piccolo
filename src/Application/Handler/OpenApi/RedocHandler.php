@@ -2,7 +2,7 @@
 
 namespace Application\Handler\OpenApi;
 
-use Laminas\Diactoros\Response\HtmlResponse;
+use Application\Handler\Handler;
 use Mezzio\Router\RouterInterface;
 use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
@@ -10,7 +10,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Routing\Attribute\{AsController, Get};
 
 #[AsController('/api/v1')]
-readonly class RedocHandler implements RequestHandlerInterface
+class RedocHandler extends Handler implements RequestHandlerInterface
 {
 
     public function __construct(
@@ -21,7 +21,7 @@ readonly class RedocHandler implements RequestHandlerInterface
     #[Get('/{redoc:redoc|swagger}', name: 'api.v1.redoc')]
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        return new HtmlResponse(
+        return $this->html(
             $this->renderer->render('app::redoc', [
                 'openapi_url' => $this->router->generateUri('api.v1.openapi')
             ])

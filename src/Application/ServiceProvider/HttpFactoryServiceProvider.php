@@ -5,13 +5,16 @@ namespace Application\ServiceProvider;
 use Awareness\{RequestFactoryAwareInterface,
     ResponseFactoryAwareInterface,
     ServerRequestFactoryAwareInterface,
-    StreamFactoryAwareInterface};
-use Laminas\Diactoros\{RequestFactory, ResponseFactory, ServerRequestFactory, StreamFactory};
+    StreamFactoryAwareInterface,
+    UploadedFileFactoryAwareInterface,
+    UriFactoryAwareInterface};
 use League\Container\ServiceProvider\{BootableServiceProviderInterface, AbstractServiceProvider};
 use Psr\Http\Message\{RequestFactoryInterface,
     ResponseFactoryInterface,
     ServerRequestFactoryInterface,
-    StreamFactoryInterface};
+    StreamFactoryInterface,
+    UploadedFileFactoryInterface,
+    UriFactoryInterface};
 
 /**
  * PSR-17 HTTP Factories Service Providers
@@ -21,13 +24,27 @@ use Psr\Http\Message\{RequestFactoryInterface,
 class HttpFactoryServiceProvider extends AbstractServiceProvider implements BootableServiceProviderInterface
 {
 
-    /**
-     * For every class implementing the ResponseFactoryAwareInterface, inject the response factory instance into the
-     * class.
-     * For every class implementing the StreamFactoryAwareInterface, inject the stream factory instance into the class.
-     * For every class implementing the ServerRequestFactoryAwareInterface, inject the server request factory instance
-     * into the class.
-     */
+    public function __construct(
+        private readonly RequestFactoryInterface $requestFactory,
+        private readonly ResponseFactoryInterface $responseFactory,
+        private readonly ServerRequestFactoryInterface $serverRequestFactory,
+        private readonly StreamFactoryInterface $streamFactory,
+        private readonly UploadedFileFactoryInterface $uploadedFileFactory,
+        private readonly UriFactoryInterface $uriFactory
+    ) {}
+
+    public function provides(string $id): bool
+    {
+        return in_array($id, [
+            StreamFactoryInterface::class,
+            ResponseFactoryInterface::class,
+            RequestFactoryInterface::class,
+            ServerRequestFactoryInterface::class,
+            UriFactoryInterface::class,
+            UploadedFileFactoryInterface::class
+        ]);
+    }
+
     public function boot(): void
     {
         $container = $this->getContainer();
@@ -59,34 +76,46 @@ class HttpFactoryServiceProvider extends AbstractServiceProvider implements Boot
                 $container->get(ServerRequestFactoryInterface::class)
             )
         );
-    }
 
-    public function provides(string $id): bool
-    {
-        return in_array($id, [
-            StreamFactoryInterface::class,
-            ResponseFactoryInterface::class,
-            RequestFactoryInterface::class,
-            ServerRequestFactoryInterface::class
-        ]);
+        $container->afterResolve(
+            UriFactoryAwareInterface::class,
+            static fn (UriFactoryAwareInterface $class) => $class->setUriFactory(
+                $container->get(UriFactoryInterface::class)
+            )
+        );
+
+        $container->afterResolve(
+            UploadedFileFactoryAwareInterface::class,
+            static fn (UploadedFileFactoryAwareInterface $class) => $class->setUploadedFileFactory(
+                $container->get(UploadedFileFactoryInterface::class)
+            )
+        );
     }
 
     public function register(): void
     {
         $this
             ->getContainer()
-            ->add(StreamFactoryInterface::class, static fn (): StreamFactoryInterface => new StreamFactory());
+            ->add(StreamFactoryInterface::class, $this->streamFactory);
 
         $this
             ->getContainer()
-            ->add(ResponseFactoryInterface::class, static fn (): ResponseFactoryInterface => new ResponseFactory());
+            ->add(ResponseFactoryInterface::class, $this->responseFactory);
 
         $this
             ->getContainer()
-            ->add(RequestFactoryInterface::class, static fn (): RequestFactoryInterface => new RequestFactory());
+            ->add(RequestFactoryInterface::class, $this->requestFactory);
 
         $this
             ->getContainer()
-            ->add(ServerRequestFactoryInterface::class, static fn (): ServerRequestFactoryInterface => new ServerRequestFactory());
+            ->add(ServerRequestFactoryInterface::class, $this->serverRequestFactory);
+
+        $this
+            ->getContainer()
+            ->add(UriFactoryInterface::class, $this->uriFactory);
+
+        $this
+            ->getContainer()
+            ->add(UploadedFileFactoryInterface::class, $this->uploadedFileFactory);
     }
 }

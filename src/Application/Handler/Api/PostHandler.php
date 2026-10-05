@@ -2,14 +2,14 @@
 
 namespace Application\Handler\Api;
 
+use Application\Handler\Handler;
 use Domain\Post\PostClientInterface;
-use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Psr\Http\Server\RequestHandlerInterface;
 use Routing\Attribute\{AsController, Get};
 
 #[AsController('/api/v1')]
-readonly class PostHandler implements RequestHandlerInterface
+class PostHandler extends Handler implements RequestHandlerInterface
 {
 
     public function __construct(
@@ -21,9 +21,9 @@ readonly class PostHandler implements RequestHandlerInterface
     {
         $id = $request->getAttribute('id');
         if ($id !== null) {
-            return new JsonResponse($this->client->getById((int)$id));
+            return $this->json($this->client->getById((int)$id));
         }
 
-        return new JsonResponse($this->client->getAll());
+        return $this->json($this->client->getAll());
     }
 }
