@@ -2,14 +2,12 @@
 
 namespace Application\ServiceProvider;
 
-use Application\Http\ServerRequestCreator;
+use Application\Http\{ServerRequestCreator, ServerRequestErrorResponseGenerator};
 use Laminas\HttpHandlerRunner\{Emitter\SapiEmitter, RequestHandlerRunner, RequestHandlerRunnerInterface};
 use Laminas\Stratigility\{MiddlewarePipeInterface, MiddlewarePipe};
 use League\Container\ServiceProvider\AbstractServiceProvider;
 use Psr\Container\ContainerExceptionInterface;
-use Psr\Http\Message\{ResponseFactoryInterface,
-    ResponseInterface,
-    ServerRequestInterface};
+use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Throwable;
 
 /**
@@ -51,15 +49,10 @@ class RequestHandlerRunnerServiceProvider extends AbstractServiceProvider
             ->addArgument(
                 static fn (): ServerRequestInterface => $container->get(ServerRequestCreator::class)->fromGlobals()
             )
-            ->addArgument(static function (Throwable $e) use ($container): ResponseInterface {
-                $response = $container->get(ResponseFactoryInterface::class)->createResponse(500);
-                $response->getBody()->write(sprintf(
-                    'An error occurred: %s',
-                    $e->getMessage()
-                ));
-
-                return $response;
-            });
+            // Only resolved when the server request cannot be created, to avoid building its dependencies on each request
+            ->addArgument(
+                static fn (Throwable $e): ResponseInterface => $container->get(ServerRequestErrorResponseGenerator::class)($e)
+            );
 
         $this
             ->getContainer()
