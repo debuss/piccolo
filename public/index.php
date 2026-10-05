@@ -12,7 +12,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 (static function () {
     /** @var ContainerInterface $container */
-    $container = require_once config_path('container.php');
+    $container = require_once app_path('bootstrap', 'app.php');
 
     $application = $container->get(Application::class);
 

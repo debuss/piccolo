@@ -1,8 +1,7 @@
 <?php declare(strict_types=1);
 
 use Awareness\ContainerAwareInterface;
-use Application\ServiceProvider\{ConfigurationServiceProvider,
-    ErrorHandlerServiceProvider,
+use Application\ServiceProvider\{ErrorHandlerServiceProvider,
     FastRouteRouterServiceProvider,
     HttpFactoryServiceProvider,
     LoggerServiceProvider,
@@ -63,7 +62,6 @@ $container->addServiceProvider(new HttpFactoryServiceProvider(
     new UploadedFileFactory(),
     new UriFactory()
 ));
-$container->addServiceProvider(new ConfigurationServiceProvider());
 $container->addServiceProvider(new LoggerServiceProvider());
 $container->addServiceProvider(new RequestHandlerRunnerServiceProvider());
 $container->addServiceProvider(new FastRouteRouterServiceProvider());

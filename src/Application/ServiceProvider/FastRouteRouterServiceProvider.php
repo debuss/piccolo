@@ -2,7 +2,7 @@
 
 namespace Application\ServiceProvider;
 
-use Borsch\Config\Config;
+use Application\Environment;
 use League\Container\ServiceProvider\AbstractServiceProvider;
 use Mezzio\Router\{FastRouteRouter, RouterInterface};
 use Psr\Container\{ContainerExceptionInterface, NotFoundExceptionInterface};
@@ -33,12 +33,12 @@ class FastRouteRouterServiceProvider extends AbstractServiceProvider
             ->getContainer()
             ->add(
                 FastRouteRouter::class,
-                static fn (Config $config): FastRouteRouter => new FastRouteRouter(config: [
-                    FastRouteRouter::CONFIG_CACHE_ENABLED => $config->get('APP_ENV') === 'production',
+                static fn (Environment $environment): FastRouteRouter => new FastRouteRouter(config: [
+                    FastRouteRouter::CONFIG_CACHE_ENABLED => $environment->isProduction(),
                     FastRouteRouter::CONFIG_CACHE_FILE => cache_path('routes.cache.php')
                 ])
             )
-            ->addArgument(Config::class);
+            ->addArgument(Environment::class);
 
         $this->getContainer()->add(RouterInterface::class, FastRouteRouter::class);
     }

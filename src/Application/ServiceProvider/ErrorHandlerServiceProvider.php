@@ -2,7 +2,7 @@
 
 namespace Application\ServiceProvider;
 
-use Borsch\Config\Config;
+use Application\Environment;
 use Laminas\Stratigility\Middleware\ErrorHandler;
 use Laminas\Stratigility\Utils;
 use League\Container\ServiceProvider\AbstractServiceProvider;
@@ -41,7 +41,7 @@ class ErrorHandlerServiceProvider extends AbstractServiceProvider
             ->getContainer()
             ->add(
                 Run::class,
-                static function (Config $config): Run {
+                static function (Environment $environment): Run {
                     $whoops = new Run();
 
                     $whoops->allowQuit(false);
@@ -49,7 +49,7 @@ class ErrorHandlerServiceProvider extends AbstractServiceProvider
                     $whoops->sendHttpCode(false);
 
                     $whoops->pushHandler(
-                        $config->getOrDefault('APP_ENV', 'development') === 'production'
+                        $environment->isProduction()
                             ? new PlainTextHandler()
                             : new PrettyPageHandler()
                     );
@@ -59,7 +59,7 @@ class ErrorHandlerServiceProvider extends AbstractServiceProvider
                     return $whoops;
                 }
             )
-            ->addArgument(Config::class);
+            ->addArgument(Environment::class);
 
         $this
             ->getContainer()
