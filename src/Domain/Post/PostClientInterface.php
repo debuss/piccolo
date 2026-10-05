@@ -2,6 +2,8 @@
 
 namespace Domain\Post;
 
+use Domain\Shared\Exception\NotFoundException;
+
 interface PostClientInterface
 {
 
@@ -10,5 +12,8 @@ interface PostClientInterface
      */
     public function getAll(): array;
 
+    /**
+     * @throws NotFoundException When no post exists with this id
+     */
     public function getById(int $id): Post;
 }
