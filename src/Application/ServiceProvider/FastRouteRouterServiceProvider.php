@@ -5,7 +5,6 @@ namespace Application\ServiceProvider;
 use Application\Environment;
 use League\Container\ServiceProvider\AbstractServiceProvider;
 use Mezzio\Router\{FastRouteRouter, RouterInterface};
-use Psr\Container\{ContainerExceptionInterface, NotFoundExceptionInterface};
 
 /**
  * FastRoute Router Service Provider
@@ -23,10 +22,6 @@ class FastRouteRouterServiceProvider extends AbstractServiceProvider
         ]);
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function register(): void
     {
         $this
