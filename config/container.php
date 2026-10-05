@@ -1,10 +1,7 @@
 <?php declare(strict_types=1);
 
 use Awareness\ContainerAwareInterface;
-use Application\ServiceProvider\{CacheServiceProvider,
-    ClientServiceProvider,
-    ConfigurationServiceProvider,
-    DatabaseServiceProvider,
+use Application\ServiceProvider\{ConfigurationServiceProvider,
     ErrorHandlerServiceProvider,
     FastRouteRouterServiceProvider,
     HttpFactoryServiceProvider,
@@ -14,8 +11,10 @@ use Application\ServiceProvider\{CacheServiceProvider,
     TemplateRendererServiceProvider};
 use League\Container\{Container, ReflectionContainer};
 use Domain\Post\PostClientInterface;
+use Http\Client\Curl\Client;
 use Infrastructure\Post\PostClient;
 use Psr\Container\ContainerInterface;
+use Psr\Http\Client\ClientInterface;
 
 /*
  * ------------------------------------------
@@ -56,10 +55,7 @@ $container->addServiceProvider(new LoggerServiceProvider());
 $container->addServiceProvider(new RequestHandlerRunnerServiceProvider());
 $container->addServiceProvider(new FastRouteRouterServiceProvider());
 $container->addServiceProvider(new ErrorHandlerServiceProvider());
-$container->addServiceProvider(new DatabaseServiceProvider());
 $container->addServiceProvider(new TemplateRendererServiceProvider());
-$container->addServiceProvider(new CacheServiceProvider());
-$container->addServiceProvider(new ClientServiceProvider());
 $container->addServiceProvider(new ProblemDetailsServiceProvider());
 
 /*
@@ -75,6 +71,7 @@ $container->addServiceProvider(new ProblemDetailsServiceProvider());
  * For more information on definitions : https://container.thephpleague.com/5.x/definitions/
  */
 
+$container->add(ClientInterface::class, Client::class);
 $container->add(PostClientInterface::class, PostClient::class);
 
 /*
