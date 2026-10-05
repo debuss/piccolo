@@ -2,13 +2,13 @@
 
 namespace Application\ServiceProvider;
 
+use Application\Http\ServerRequestCreator;
 use Laminas\HttpHandlerRunner\{Emitter\SapiEmitter, RequestHandlerRunner, RequestHandlerRunnerInterface};
 use Laminas\Stratigility\{MiddlewarePipeInterface, MiddlewarePipe};
 use League\Container\ServiceProvider\AbstractServiceProvider;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Http\Message\{ResponseFactoryInterface,
     ResponseInterface,
-    ServerRequestFactoryInterface,
     ServerRequestInterface};
 use Throwable;
 
@@ -48,11 +48,9 @@ class RequestHandlerRunnerServiceProvider extends AbstractServiceProvider
             ->add(RequestHandlerRunner::class)
             ->addArgument($pipeline)
             ->addArgument(new SapiEmitter)
-            ->addArgument(static function () use ($container): ServerRequestInterface {
-                $serverRequestFactory = $container->get(ServerRequestFactoryInterface::class);
-
-                return $serverRequestFactory::fromGlobals();
-            })
+            ->addArgument(
+                static fn (): ServerRequestInterface => $container->get(ServerRequestCreator::class)->fromGlobals()
+            )
             ->addArgument(static function (Throwable $e) use ($container): ResponseInterface {
                 $response = $container->get(ResponseFactoryInterface::class)->createResponse(500);
                 $response->getBody()->write(sprintf(
