@@ -2,7 +2,7 @@
 
 namespace Application\ServiceProvider;
 
-use Application\Http\ProblemDetails\{ExceptionStatusMapper, MappingProblemDetailsResponseFactory};
+use Application\Environment;
 use League\Container\ServiceProvider\AbstractServiceProvider;
 use Mezzio\ProblemDetails\{ProblemDetailsMiddleware, ProblemDetailsResponseFactory};
 use Psr\Container\ContainerExceptionInterface;
@@ -22,7 +22,6 @@ class ProblemDetailsServiceProvider extends AbstractServiceProvider
     public function provides(string $id): bool
     {
         return in_array($id, [
-            ExceptionStatusMapper::class,
             ProblemDetailsResponseFactory::class,
             ProblemDetailsMiddleware::class
         ]);
@@ -34,18 +33,18 @@ class ProblemDetailsServiceProvider extends AbstractServiceProvider
      */
     public function register(): void
     {
-        $this->getContainer()->add(ExceptionStatusMapper::class);
-
+        // Exceptions that do not implement ProblemDetailsExceptionInterface become a 500 response, their message and
+        // trace are only exposed in debug mode (outside of production).
         $this
             ->getContainer()
             ->add(
                 ProblemDetailsResponseFactory::class,
-                static fn (ResponseFactoryInterface $responseFactory, ExceptionStatusMapper $mapper) =>
-                    new MappingProblemDetailsResponseFactory($responseFactory, $mapper)
+                static fn (ResponseFactoryInterface $responseFactory, Environment $environment) =>
+                    new ProblemDetailsResponseFactory($responseFactory, isDebug: !$environment->isProduction())
             )
             ->addArguments([
                 ResponseFactoryInterface::class,
-                ExceptionStatusMapper::class
+                Environment::class
             ]);
 
         $this
