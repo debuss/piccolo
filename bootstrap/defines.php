@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 define('__ROOT_DIR__', realpath(dirname(__DIR__)));
 

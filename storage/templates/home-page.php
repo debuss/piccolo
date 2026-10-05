@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Welcome page: this template and HomeHandler can be deleted once you no longer need them.
  *
