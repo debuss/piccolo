@@ -89,6 +89,23 @@
             padding-block: 1.75rem;
         }
 
+        .site-header {
+            gap: 1rem;
+        }
+
+        .site-nav {
+            display: flex;
+            gap: 1.5rem;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 30rem) {
+            .site-nav {
+                gap: 1rem;
+                font-size: .9375rem;
+            }
+        }
+
         .wordmark {
             color: var(--ink);
             font-weight: 700;
@@ -112,7 +129,11 @@
 <body>
 <header class="site-header">
     <a class="wordmark" href="/">piccolo</a>
-    <a href="https://github.com/debuss/piccolo">GitHub</a>
+    <nav class="site-nav" aria-label="Main">
+        <a href="/api/v1/redoc" target="_blank" rel="noopener">API reference</a>
+        <a href="/api/ping" target="_blank" rel="noopener">Ping</a>
+        <a href="https://github.com/debuss/piccolo" target="_blank" rel="noopener">GitHub</a>
+    </nav>
 </header>
 <main class="site-main">
     <?= $this->section('content') ?>

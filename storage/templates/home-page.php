@@ -55,11 +55,6 @@ $tempo = match (true) {
         line-height: 1.5;
     }
 
-    .hero .try {
-        margin: .75rem 0 0;
-        color: var(--muted);
-    }
-
     /* The score: the one expressive element of the page */
     .score {
         margin: clamp(2.5rem, 7vh, 4.5rem) 0 0;
@@ -286,9 +281,6 @@ $tempo = match (true) {
     <p class="lead">
         This page is a response from <code>HomeHandler</code>. Here is the path your request took through the
         middleware pipeline to get there.
-    </p>
-    <p class="try">
-        Try <a href="/api/ping"><code>GET /api/ping</code></a>, or open the <a href="/api/v1/redoc">API reference</a>.
     </p>
 </section>
 
