@@ -156,9 +156,6 @@ In production, prefer real environment variables (Apache `SetEnv`, nginx `fastcg
 
 Available variables (see `.env.example`):
 
-- `APP_NAME`
-- `APP_VERSION`
-- `APP_URL`
 - `APP_ENV` — `development` (default) or `production`
 - `LOGGER_NAME`
 - `LOG_STREAM` — where logs are written: `php://stderr` (default) or a file path relative to the app root

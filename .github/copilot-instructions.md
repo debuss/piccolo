@@ -347,7 +347,7 @@ to the container. Sources are merged in order, the last one wins:
 Inject `Config $config` in any constructor — it is autowired:
 
 ```php
-$config->getOrDefault('APP_URL', 'http://localhost:8080');
+$config->getOrDefault('LOGGER_NAME', 'app');
 ```
 
 **Never read `APP_ENV` directly.** Depend on the `Application\Environment` enum (also autowired) instead:
