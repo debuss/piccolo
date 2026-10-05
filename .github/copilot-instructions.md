@@ -296,7 +296,8 @@ $container->add(PostClientInterface::class, PostClient::class);
 
 ## Error handling
 
-- **HTML errors**: `Whoops` with `PrettyPageHandler` in development, `PlainTextHandler` in production. Controlled by `APP_ENV`.
+- **HTML errors**: Stratigility `ErrorHandler` with its `ErrorResponseGenerator`: the exception (message and trace) is
+  displayed outside production, only the reason phrase in production. Controlled by `APP_ENV`.
 - **API errors**: `ProblemDetailsMiddleware` is scoped to `/api` in the pipeline. It uses `MappingProblemDetailsResponseFactory`
   (`src/Application/Http/ProblemDetails/MappingProblemDetailsResponseFactory.php`), which consults `ExceptionStatusMapper`
   to turn a plain Domain/Infrastructure exception into the right status/title, then falls back to the stock

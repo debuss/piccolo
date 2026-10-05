@@ -28,7 +28,7 @@ It uses Laminas and Mezzio components directly (without `mezzio/mezzio`) and pro
 - **Templating**
   - `mezzio/mezzio-platesrenderer` (Plates)
 - **Error handling / API errors**
-  - `filp/whoops`
+  - `laminas/laminas-stratigility` error handler (exception details outside production only)
   - `mezzio/mezzio-problem-details` (RFC 7807)
 - **Observability & utilities**
   - `monolog/monolog`
