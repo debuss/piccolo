@@ -2,18 +2,21 @@
 
 namespace Application\ServiceProvider;
 
+use Application\Environment;
 use Borsch\Config\Config;
 use League\Container\ServiceProvider\{AbstractServiceProvider, BootableServiceProviderInterface};
-use DateTimeZone;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\{Level, Logger};
 use Monolog\Processor\PsrLogMessageProcessor;
 use Psr\Log\{LoggerAwareInterface, LoggerInterface};
-use Psr\Container\{ContainerExceptionInterface, NotFoundExceptionInterface};
 
 /**
  * PSR-3 Logger Service Provider
+ *
+ * Logs are written as JSON lines to a single stream, configured with environment variables:
+ * - LOG_STREAM: `php://stderr` by default (Docker, systemd, ...), or a file path (relative to the app root)
+ * - LOG_LEVEL: minimum level to log, `debug` by default, `info` in production
  *
  * @see https://seldaek.github.io/monolog/
  */
@@ -49,38 +52,29 @@ class LoggerServiceProvider extends AbstractServiceProvider implements BootableS
         ]);
     }
 
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
     public function register(): void
     {
         $this
             ->getContainer()
-            ->add(Logger::class, static function (Config $config): Logger {
-                $name = $config->getOrDefault('LOGGER_NAME', 'app');
-                $tz = $config->getOrDefault('TIMEZONE', 'UTC');
+            ->add(Logger::class, static function (Config $config, Environment $environment): Logger {
+                $level = Level::fromName($config->getOrDefault('LOG_LEVEL', $environment->isProduction() ? 'info' : 'debug'));
 
-                $formatter = new JsonFormatter();
-                $handlers = [
-                    // Log important errors in a file
-                    new StreamHandler(logs_path('app.log'), Level::Warning)
-                        ->setFormatter($formatter),
+                // php://stderr rather than php://stdout, which is the response body with some SAPIs (CGI)
+                $stream = $config->getOrDefault('LOG_STREAM', 'php://stderr');
+                if (!str_contains($stream, '://') && !preg_match('#^([a-z]:)?[\\\\/]#i', $stream)) {
+                    $stream = app_path($stream);
+                }
 
-                    // Log everything to the console (useful when running in Docker)
-                    new StreamHandler(fopen('php://stdout', 'wb'), Level::Debug)
-                        ->setFormatter($formatter),
-                ];
-
-                $processors = [
-                    new PsrLogMessageProcessor(removeUsedContextFields: true)
-                ];
-
-                $timezone = new DateTimeZone($tz);
-
-                return new Logger($name, $handlers, $processors, $timezone);
+                return new Logger(
+                    $config->getOrDefault('LOGGER_NAME', 'app'),
+                    [new StreamHandler($stream, $level)->setFormatter(new JsonFormatter())],
+                    [new PsrLogMessageProcessor(removeUsedContextFields: true)]
+                );
             })
-            ->addArgument(Config::class);
+            ->addArguments([
+                Config::class,
+                Environment::class
+            ]);
 
         $this->getContainer()->add(LoggerInterface::class, Logger::class);
     }

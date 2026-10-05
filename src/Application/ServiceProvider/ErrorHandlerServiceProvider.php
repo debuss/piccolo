@@ -3,13 +3,10 @@
 namespace Application\ServiceProvider;
 
 use Application\Environment;
+use Application\Http\ErrorLogListener;
 use Laminas\Stratigility\Middleware\{ErrorHandler, ErrorResponseGenerator};
 use League\Container\ServiceProvider\AbstractServiceProvider;
-use Psr\Http\Message\{ResponseFactoryInterface,
-    ResponseInterface,
-    ServerRequestInterface};
-use Psr\Log\LoggerInterface;
-use Throwable;
+use Psr\Http\Message\ResponseFactoryInterface;
 
 /**
  * Error Handler Service Provider
@@ -37,18 +34,14 @@ class ErrorHandlerServiceProvider extends AbstractServiceProvider
                 static function (
                     ResponseFactoryInterface $responseFactory,
                     Environment $environment,
-                    LoggerInterface $logger
+                    ErrorLogListener $listener
                 ): ErrorHandler {
                     $handler = new ErrorHandler(
                         $responseFactory,
                         new ErrorResponseGenerator(isDevelopmentMode: !$environment->isProduction())
                     );
 
-                    $handler->attachListener(static fn (
-                        Throwable $e,
-                        ServerRequestInterface $request,
-                        ResponseInterface $response
-                    ) => $logger->error($e->getMessage(), ['exception' => $e, 'request' => $request, 'response' => $response]));
+                    $handler->attachListener($listener);
 
                     return $handler;
                 }
@@ -56,7 +49,7 @@ class ErrorHandlerServiceProvider extends AbstractServiceProvider
             ->addArguments([
                 ResponseFactoryInterface::class,
                 Environment::class,
-                LoggerInterface::class
+                ErrorLogListener::class
             ]);
     }
 }

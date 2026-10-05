@@ -22,10 +22,13 @@ $environment = Environment::fromConfig($config);
  * ------------------------------------------
  *
  * Errors are never displayed in production, they are handled by the ErrorHandler middleware and logged instead.
+ * The timezone applies to the whole application (dates, logs, ...).
  */
 
 ini_set('display_errors', $environment->isProduction() ? '0' : '1');
 ini_set('display_startup_errors', $environment->isProduction() ? '0' : '1');
+
+date_default_timezone_set($config->getOrDefault('TIMEZONE', 'UTC'));
 
 /*
  * ------------------------------------------
