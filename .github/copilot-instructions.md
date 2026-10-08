@@ -335,7 +335,8 @@ $container->add(PostClientInterface::class, PostClient::class);
   contain credentials (Authorization header, session cookie, password, ...).
 - **Server request creation errors** (invalid header, malformed uploaded files, ...) happen before the pipeline, when
   `Debuss\ServerRequestFactory\ServerRequestFactory` builds the request from the globals, and are handled by
-  `Application\Http\ServerRequestErrorResponseGenerator` (logged, 400 response).
+  `Application\Http\ServerRequestErrorResponseGenerator`: 400 response and warning log for a malformed client request
+  (`BadRequestException`), 500 response and error log for anything else (configuration, uploaded files, ...).
 
 ---
 
