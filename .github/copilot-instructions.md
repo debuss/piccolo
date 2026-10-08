@@ -333,8 +333,9 @@ $container->add(PostClientInterface::class, PostClient::class);
 - **Logging**: `ErrorHandler` and `ProblemDetailsMiddleware` share `Application\Http\ErrorLogListener`, which only logs
   the request method, the original URI and the response status. Never log request headers, cookies or body: they can
   contain credentials (Authorization header, session cookie, password, ...).
-- **Server request creation errors** (invalid header, malformed uploaded files, ...) happen before the pipeline and are
-  handled by `Application\Http\ServerRequestErrorResponseGenerator` (logged, 400 response).
+- **Server request creation errors** (invalid header, malformed uploaded files, ...) happen before the pipeline, when
+  `Debuss\ServerRequestFactory\ServerRequestFactory` builds the request from the globals, and are handled by
+  `Application\Http\ServerRequestErrorResponseGenerator` (logged, 400 response).
 
 ---
 
