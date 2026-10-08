@@ -18,6 +18,7 @@ It uses Laminas and Mezzio components directly (without `mezzio/mezzio`) and pro
   - `laminas/laminas-stratigility`
   - `laminas/laminas-httphandlerrunner`
   - `laminas/laminas-diactoros` (default PSR-7 / PSR-17 implementation, swappable)
+  - `debuss-a/server-request-factory` (server request from the globals, with any PSR-17 implementation)
 - **Routing**
   - `mezzio/mezzio-fastroute`
   - `debuss-a/attribute-routing` (attribute route collector)
