@@ -53,10 +53,12 @@ return static function (Application $app, ContainerInterface $container): void
         $routeLoader = new CachedRouteLoader($routeLoader, cache_path('route-definitions.cache.php'));
     }
 
+    // The middlewares of the #[Middleware] attributes (of the handler class, then of the method) are executed before the
+    // handler, only for the routes they are defined on.
     foreach ($routeLoader->getRouteDefinitions() as $routeDefinition) {
         $app->route(
             $routeDefinition->path,
-            $routeDefinition->handler[0], // e.g.: RequestHandlerInterface
+            [...$routeDefinition->middlewares, $routeDefinition->handler[0]], // e.g.: RequestHandlerInterface
             $routeDefinition->methods,
             $routeDefinition->name
         );

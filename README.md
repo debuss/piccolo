@@ -106,6 +106,19 @@ Piccolo supports:
 
 Attributes are collected via `AttributeRouteLoader` on `Application\Handler`.
 
+Middlewares specific to some routes are declared on the handler too, with `#[Middleware]` (on the class for all its
+routes, or on the method): they are executed after the routing, only when the route is matched. For instance, the
+OpenAPI document is cached by the clients thanks to `HttpCacheMiddleware` (`Cache-Control`, `ETag` and
+`304 Not Modified`):
+
+```php
+#[Get(path: '/openapi[.{format:yml|yaml}]', name: 'api.v1.openapi')]
+#[Middleware(HttpCacheMiddleware::class)]
+public function handle(ServerRequestInterface $request): ResponseInterface
+```
+
+Middlewares that apply to a whole path, like `/api`, are piped in `config/pipeline.php` instead.
+
 ### 4) Middleware pipeline
 
 `config/pipeline.php` keeps a Mezzio-style flow:

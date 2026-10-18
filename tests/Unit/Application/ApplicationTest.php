@@ -178,6 +178,35 @@ test('route() registers a route with multiple explicit HTTP methods', function (
     expect($route->getAllowedMethods())->toBe(['GET', 'POST']);
 });
 
+test('route() with an array groups the route middlewares and the handler into a single pipe, run in order', function () {
+    ['app' => $app] = makeApplication();
+
+    $app->route(
+        '/posts',
+        [new RecordingMiddleware('route-1'), new RecordingMiddleware('route-2'), new TerminalMiddleware('handler')],
+        ['GET'],
+        'posts.index'
+    );
+
+    $routes = $app->getRoutes();
+    expect($routes)->toHaveCount(1)
+        ->and($routes[0]->getMiddleware())->toBeInstanceOf(MiddlewarePipe::class);
+
+    $response = json_decode(
+        (string) $routes[0]->getMiddleware()->process(new ServerRequest(uri: '/posts', method: 'GET'), new NoopRequestHandler())->getBody(),
+        true
+    );
+
+    expect($response)->toBe(['trail' => ['route-1', 'route-2'], 'source' => 'handler']);
+});
+
+test('route() throws for an empty array of middlewares', function () {
+    ['app' => $app] = makeApplication();
+
+    expect(fn() => $app->route('/posts', [], ['GET'], 'posts.index'))
+        ->toThrow(InvalidArgumentException::class);
+});
+
 test('getRoutes() reflects every route registered so far', function () {
     ['app' => $app] = makeApplication();
 

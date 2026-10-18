@@ -110,9 +110,28 @@ final readonly class Application implements MiddlewareInterface, RequestHandlerI
         return $middleware;
     }
 
+    /**
+     * The middleware can also be an array, e.g. the middlewares of the route followed by its request handler: they are
+     * grouped into a single nested pipe, only executed when the route is matched.
+     *
+     * @throws InvalidArgumentException If the middleware is an empty array.
+     */
     public function route(string $path, $middleware, ?array $methods = null, ?string $name = null): Route
     {
-        return $this->routes->route($path, $this->toMiddleware($middleware), $methods, $name);
+        if (!is_array($middleware)) {
+            return $this->routes->route($path, $this->toMiddleware($middleware), $methods, $name);
+        }
+
+        if ($middleware === []) {
+            throw new InvalidArgumentException(sprintf('The route "%s" must have at least one middleware.', $path));
+        }
+
+        $group = new MiddlewarePipe();
+        foreach ($middleware as $middle) {
+            $group->pipe($this->toMiddleware($middle));
+        }
+
+        return $this->routes->route($path, $group, $methods, $name);
     }
 
     public function get(string $path, $middleware, ?string $name = null): Route
