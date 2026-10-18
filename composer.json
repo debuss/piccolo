@@ -39,7 +39,7 @@
   "require": {
     "php": "^8.4",
     "borschphp/config": "^1.4",
-    "debuss-a/attribute-routing": "^2.0",
+    "debuss-a/attribute-routing": "^3.0",
     "debuss-a/awareness": "^1.2",
     "debuss-a/server-request-factory": "^1.0",
     "laminas/laminas-diactoros": "^3.8",

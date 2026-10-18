@@ -167,9 +167,10 @@ Available variables (see `.env.example`):
 With `APP_ENV=production`:
 
 - errors are not displayed, and error responses do not contain exception details
-- the routes are cached in `storage/cache/routes.cache.php`
+- the route definitions read from the handler attributes are cached in `storage/cache/route-definitions.cache.php`
+- the FastRoute dispatch data is cached in `storage/cache/routes.cache.php`
 
-The route cache is never regenerated on its own: clear `storage/cache` when deploying new routes (not needed when
+These caches are never regenerated on their own: clear `storage/cache` when deploying new routes (not needed when
 each deployment starts from a fresh container image).
 
 ## Error Handling and Logging
