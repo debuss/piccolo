@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 use Application\Application;
-use Application\Middleware\LazyLoadingMiddleware;
+use Application\Middleware\{LazyLoadingMiddleware, RequestIdMiddleware};
 use Laminas\Stratigility\MiddlewarePipe;
 use Mezzio\Cors\Configuration\{ConfigurationInterface, ProjectConfiguration};
 use Mezzio\Cors\Middleware\CorsMiddleware;
@@ -29,6 +29,10 @@ function pipedMiddlewares(ProjectConfiguration $corsConfiguration): array
         iterator_to_array($pipeline, false)
     );
 }
+
+test('pipes the RequestIdMiddleware first, so that it wraps the error handler', function () {
+    expect(pipedMiddlewares(new ProjectConfiguration([]))[0])->toBe(RequestIdMiddleware::class);
+});
 
 test('does not pipe the CORS middleware when no origin is allowed', function () {
     expect(pipedMiddlewares(new ProjectConfiguration([])))->not->toContain(CorsMiddleware::class);

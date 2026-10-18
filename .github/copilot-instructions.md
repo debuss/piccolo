@@ -369,6 +369,9 @@ In production, set `APP_ENV=production` as a real server environment variable ra
 Logging is configured with environment variables: `LOG_STREAM` (`php://stderr` by default, or a file path relative to
 the app root) and `LOG_LEVEL` (`debug` by default, `info` in production).
 
+The records logged while handling a request have its identifier in `extra.request_id` (`RequestIdProcessor`, set by
+`RequestIdMiddleware` from the `X-Request-Id` header): do not add it to the context of the log calls.
+
 CORS is configured with the `CORS_*` environment variables (see `.env.example` and `CorsServiceProvider`), and disabled
 when `CORS_ALLOWED_ORIGINS` is empty.
 
@@ -399,8 +402,9 @@ Globally available (loaded via `bootstrap/helpers.php`):
 
 - Middleware order in `config/pipeline.php` is significant — never reorder without understanding side effects.
 - Middlewares are executed in the order they are declared, and the request flows from top to bottom.
-- `ErrorHandler` must always be **first** (outermost), followed by `OriginalMessages` (keeps the original URI, as
-  middleware piped on a path only see the URI without that path prefix).
+- `RequestIdMiddleware` must always be **first** (outermost), so that errors are logged with the request identifier,
+  followed by `ErrorHandler`, then `OriginalMessages` (keeps the original URI, as middleware piped on a path only see
+  the URI without that path prefix).
 - `ProblemDetailsMiddleware` is scoped to `/api` — do not move it to the global scope.
 - `CorsMiddleware` (mezzio-cors) is piped globally, before `RouteMiddleware`, and only when CORS is enabled
   (`CORS_ALLOWED_ORIGINS`) — do not scope it to a path, it matches the routes on its own with the full URI.

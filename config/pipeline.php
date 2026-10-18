@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 use Application\Application;
-use Application\Middleware\ApiAcceptHeaderMiddleware;
+use Application\Middleware\{ApiAcceptHeaderMiddleware, RequestIdMiddleware};
 use Laminas\Stratigility\Handler\NotFoundHandler;
 use Laminas\Stratigility\Middleware\{ErrorHandler, OriginalMessages};
 use Mezzio\Router\Middleware\{DispatchMiddleware,
@@ -22,7 +22,11 @@ use Psr\Container\ContainerInterface;
  */
 return static function (Application $app, ContainerInterface $container): void
 {
-    // The error handler should be the first (most outer) middleware to catch all exceptions.
+    // Identify the request (X-Request-Id header) and add its identifier to every log record. It comes first, so that
+    // the errors are logged with the identifier and their responses have the header too.
+    $app->pipe(RequestIdMiddleware::class);
+
+    // The error handler should be the first (most outer) middleware after it, to catch all exceptions.
     $app->pipe(ErrorHandler::class);
 
     // Keep the original request URI in the `originalUri` attribute, as middleware piped on a path (e.g. `/api`) only
