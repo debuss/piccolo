@@ -106,6 +106,19 @@ Piccolo supports:
 
 Attributes are collected via `AttributeRouteLoader` on `Application\Handler`.
 
+Middlewares specific to some routes are declared on the handler too, with `#[Middleware]` (on the class for all its
+routes, or on the method): they are executed after the routing, only when the route is matched. For instance, the
+OpenAPI document is cached by the clients thanks to `HttpCacheMiddleware` (`Cache-Control`, `ETag` and
+`304 Not Modified`):
+
+```php
+#[Get(path: '/openapi[.{format:yml|yaml}]', name: 'api.v1.openapi')]
+#[Middleware(HttpCacheMiddleware::class)]
+public function handle(ServerRequestInterface $request): ResponseInterface
+```
+
+Middlewares that apply to a whole path, like `/api`, are piped in `config/pipeline.php` instead.
+
 ### 4) Middleware pipeline
 
 `config/pipeline.php` keeps a Mezzio-style flow:
@@ -167,9 +180,10 @@ Available variables (see `.env.example`):
 With `APP_ENV=production`:
 
 - errors are not displayed, and error responses do not contain exception details
-- the routes are cached in `storage/cache/routes.cache.php`
+- the route definitions read from the handler attributes are cached in `storage/cache/route-definitions.cache.php`
+- the FastRoute dispatch data is cached in `storage/cache/routes.cache.php`
 
-The route cache is never regenerated on its own: clear `storage/cache` when deploying new routes (not needed when
+These caches are never regenerated on their own: clear `storage/cache` when deploying new routes (not needed when
 each deployment starts from a fresh container image).
 
 ## Error Handling and Logging

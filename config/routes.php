@@ -1,9 +1,9 @@
 <?php declare(strict_types=1);
 
-use Application\Application;
+use Application\{Application, Environment};
 use Application\Handler\HealthCheck\PingHandler;
 use Psr\Container\ContainerInterface;
-use Routing\AttributeRouteLoader;
+use Routing\{AttributeRouteLoader, CachedRouteLoader};
 
 /**
  * FastRoute route configuration
@@ -42,15 +42,23 @@ return static function (Application $app, ContainerInterface $container): void
     // Which means you can focus on your handlers, defines a few attribute, and you will not need to come back here to
     // register your new route. You can define your route and its logic all at the same place (your handler).
     // For more information on AttributeRouteLoader : https://github.com/debuss/attribute-routing
-    $attributeRouteLoader = new AttributeRouteLoader(
+    $routeLoader = new AttributeRouteLoader(
         'Application\\Handler',
         source_path('Application/Handler')
     );
 
-    foreach ($attributeRouteLoader->getRouteDefinitions() as $routeDefinition) {
+    // Scanning the handlers and reading their attributes happens on every request, so the route definitions are cached
+    // in production. Like the FastRoute cache, the file is never regenerated on its own: clear storage/cache on deploy.
+    if ($container->get(Environment::class)->isProduction()) {
+        $routeLoader = new CachedRouteLoader($routeLoader, cache_path('route-definitions.cache.php'));
+    }
+
+    // The middlewares of the #[Middleware] attributes (of the handler class, then of the method) are executed before the
+    // handler, only for the routes they are defined on.
+    foreach ($routeLoader->getRouteDefinitions() as $routeDefinition) {
         $app->route(
             $routeDefinition->path,
-            $routeDefinition->handler[0], // e.g.: RequestHandlerInterface
+            [...$routeDefinition->middlewares, $routeDefinition->handler[0]], // e.g.: RequestHandlerInterface
             $routeDefinition->methods,
             $routeDefinition->name
         );

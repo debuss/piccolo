@@ -3,21 +3,22 @@
 namespace Application\Handler\OpenApi;
 
 use Application\Handler\Handler;
+use Application\Middleware\HttpCacheMiddleware;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
-use Routing\Attribute\{AsController, Get};
+use Routing\Attribute\{AsController, Get, Middleware};
 
 #[AsController('/api/v1')]
 class OpenApiSpecHandler extends Handler
 {
 
     #[Get(path: '/openapi[.{format:yml|yaml}]', name: 'api.v1.openapi')]
+    #[Middleware(HttpCacheMiddleware::class)]
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         return $this->responseFactory->createResponse(200)
             ->withBody(
                 $this->streamFactory->createStreamFromFile(storage_path('openapi.yaml'))
             )
-            ->withHeader('Content-Type', 'text/yaml')
-            ->withHeader('Expires', gmdate('D, d M Y H:i:s \G\M\T', strtotime('+1 HOUR')));
+            ->withHeader('Content-Type', 'text/yaml');
     }
 }
