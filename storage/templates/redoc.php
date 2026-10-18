@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>API Documentation</title>
+</head>
 <body>
 <redoc spec-url="<?= $this->e($openapi_url) ?>"></redoc>
-<script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"> </script>
+<script type="module" src="https://cdn.redoc.ly/redoc/v3.x/bundles/redoc.standalone.js"></script>
 </body>
 </html>
