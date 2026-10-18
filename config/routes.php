@@ -48,13 +48,14 @@ return static function (Application $app, ContainerInterface $container): void
     );
 
     // Scanning the handlers and reading their attributes happens on every request, so the route definitions are cached
-    // in production. Like the FastRoute cache, the file is never regenerated on its own: clear storage/cache on deploy.
+    // in production. Like the FastRoute cache, the file is never regenerated on its own: run `bin/console cache:warmup`
+    // on each deployment.
     if ($container->get(Environment::class)->isProduction()) {
         $routeLoader = new CachedRouteLoader($routeLoader, cache_path('route-definitions.cache.php'));
     }
 
-    // The middlewares of the #[Middleware] attributes (of the handler class, then of the method) are executed before the
-    // handler, only for the routes they are defined on.
+    // The middlewares of the #[Middleware] attributes (of the handler class, then of the method) are executed before
+    // the handler, only for the routes they are defined on.
     foreach ($routeLoader->getRouteDefinitions() as $routeDefinition) {
         $app->route(
             $routeDefinition->path,

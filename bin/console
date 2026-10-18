@@ -1,0 +1,18 @@
+#!/usr/bin/env php
+<?php declare(strict_types=1);
+
+use Psr\Container\ContainerInterface;
+use Symfony\Component\Console\Application as Console;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+(static function () {
+    /** @var ContainerInterface $container */
+    $container = require_once app_path('bootstrap', 'app.php');
+
+    $console = new Console('Piccolo');
+
+    (require_once config_path('commands.php'))($console, $container);
+
+    exit($console->run());
+})();

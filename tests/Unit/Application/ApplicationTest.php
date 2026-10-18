@@ -46,7 +46,8 @@ test('pipe() wraps a class-string middleware for lazy resolution from the contai
 
     $entries = iterator_to_array($pipeline);
     expect($entries)->toHaveCount(1)
-        ->and($entries[0])->toBeInstanceOf(LazyLoadingMiddleware::class);
+        ->and($entries[0])->toBeInstanceOf(LazyLoadingMiddleware::class)
+        ->and($entries[0]->getMiddleware())->toBe(NoopMiddleware::class);
 });
 
 test('pipe() wraps a callable middleware', function () {
