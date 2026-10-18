@@ -126,16 +126,17 @@ Middlewares that apply to a whole path, like `/api`, are piped in `config/pipeli
 
 `config/pipeline.php` keeps a Mezzio-style flow:
 
-1. `ErrorHandler`
-2. `OriginalMessages` (keeps the original URI for middleware piped on a path)
-3. `CorsMiddleware`, only when CORS is enabled (see [CORS](#cors))
-4. `/api` scoped middlewares (`ApiAcceptHeaderMiddleware`, `ProblemDetailsMiddleware`, `BodyParamsMiddleware`)
-5. `RouteMiddleware`
-6. `ImplicitHeadMiddleware`
-7. `ImplicitOptionsMiddleware`
-8. `MethodNotAllowedMiddleware`
-9. `DispatchMiddleware`
-10. `NotFoundHandler`
+1. `RequestIdMiddleware` (identifies the request, see [Error Handling and Logging](#error-handling-and-logging))
+2. `ErrorHandler`
+3. `OriginalMessages` (keeps the original URI for middleware piped on a path)
+4. `CorsMiddleware`, only when CORS is enabled (see [CORS](#cors))
+5. `/api` scoped middlewares (`ApiAcceptHeaderMiddleware`, `ProblemDetailsMiddleware`, `BodyParamsMiddleware`)
+6. `RouteMiddleware`
+7. `ImplicitHeadMiddleware`
+8. `ImplicitOptionsMiddleware`
+9. `MethodNotAllowedMiddleware`
+10. `DispatchMiddleware`
+11. `NotFoundHandler`
 
 ### 5) Layer dependencies
 
@@ -223,6 +224,11 @@ that the scheme and host of the request, compared to the origin, are the public 
   `PostHandler` returns a 404 Problem Details response on `NotFoundException`.
 - **Logs**: JSON lines written by Monolog to `LOG_STREAM`. Errors are logged with the request method, URI and response
   status only: headers, cookies and body are never logged, as they can contain credentials.
+- **Request identifier**: `RequestIdMiddleware` keeps the `X-Request-Id` header set by a reverse proxy or a load
+  balancer (letters, digits, `.`, `_`, `:` and `-`, at most 128 characters), or generates one. It is added to every log
+  record of the request (`extra.request_id`), set in the `request_id` attribute of the request, and sent back in the
+  `X-Request-Id` header of the response, errors included. With CORS, add `X-Request-Id` to `CORS_EXPOSED_HEADERS` for
+  a front-end to read it.
 
 ## Console
 

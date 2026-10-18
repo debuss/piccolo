@@ -3,6 +3,7 @@
 namespace Application\ServiceProvider;
 
 use Application\Environment;
+use Application\Http\RequestIdProcessor;
 use Borsch\Config\Config;
 use League\Container\ServiceProvider\{AbstractServiceProvider, BootableServiceProviderInterface};
 use Monolog\Formatter\JsonFormatter;
@@ -17,6 +18,8 @@ use Psr\Log\{LoggerAwareInterface, LoggerInterface};
  * Logs are written as JSON lines to a single stream, configured with environment variables:
  * - LOG_STREAM: `php://stderr` by default (Docker, systemd, ...), or a file path (relative to the app root)
  * - LOG_LEVEL: minimum level to log, `debug` by default, `info` in production
+ *
+ * The records logged while handling a request have its identifier in their `extra` (see RequestIdMiddleware).
  *
  * @see https://seldaek.github.io/monolog/
  */
@@ -48,15 +51,23 @@ class LoggerServiceProvider extends AbstractServiceProvider implements BootableS
     {
         return in_array($id, [
             Logger::class,
-            LoggerInterface::class
+            LoggerInterface::class,
+            RequestIdProcessor::class
         ]);
     }
 
     public function register(): void
     {
+        // Shared, as the RequestIdMiddleware sets the identifier of the request on the instance given to the logger
+        $this->getContainer()->add(RequestIdProcessor::class)->setShared();
+
         $this
             ->getContainer()
-            ->add(Logger::class, static function (Config $config, Environment $environment): Logger {
+            ->add(Logger::class, static function (
+                Config $config,
+                Environment $environment,
+                RequestIdProcessor $requestIdProcessor
+            ): Logger {
                 $level = Level::fromName($config->getOrDefault('LOG_LEVEL', $environment->isProduction() ? 'info' : 'debug'));
 
                 $stream = $config->getOrDefault('LOG_STREAM', 'php://stderr');
@@ -67,12 +78,13 @@ class LoggerServiceProvider extends AbstractServiceProvider implements BootableS
                 return new Logger(
                     $config->getOrDefault('LOGGER_NAME', 'app'),
                     [new StreamHandler($stream, $level)->setFormatter(new JsonFormatter())],
-                    [new PsrLogMessageProcessor(removeUsedContextFields: true)]
+                    [new PsrLogMessageProcessor(removeUsedContextFields: true), $requestIdProcessor]
                 );
             })
             ->addArguments([
                 Config::class,
-                Environment::class
+                Environment::class,
+                RequestIdProcessor::class
             ]);
 
         $this->getContainer()->add(LoggerInterface::class, Logger::class);
