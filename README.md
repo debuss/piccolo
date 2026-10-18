@@ -50,11 +50,14 @@ Application runs at: `http://localhost:8080`
 
 ```text
 .
+├── bin/
+│   └── console          # console entry point (Symfony Console)
 ├── bootstrap/
 │   ├── app.php          # loads the configuration, applies PHP runtime settings, builds the container
 │   ├── defines.php      # global defines
 │   └── helpers.php      # path helper functions
 ├── config/
+│   ├── commands.php     # console commands
 │   ├── configuration.php # configuration sources (.env, environment variables)
 │   ├── container.php    # League\Container wiring + service providers
 │   ├── pipeline.php     # middleware pipeline
@@ -62,7 +65,7 @@ Application runs at: `http://localhost:8080`
 ├── public/
 │   └── index.php        # front controller
 ├── src/
-│   ├── Application/     # HTTP layer: handlers, middleware, service providers
+│   ├── Application/     # delivery layer: handlers, middleware, console commands, service providers
 │   ├── Domain/          # business contracts/models/shared concepts
 │   └── Infrastructure/  # external integrations (HTTP client, persistence...)
 └── storage/
@@ -183,8 +186,8 @@ With `APP_ENV=production`:
 - the route definitions read from the handler attributes are cached in `storage/cache/route-definitions.cache.php`
 - the FastRoute dispatch data is cached in `storage/cache/routes.cache.php`
 
-These caches are never regenerated on their own: clear `storage/cache` when deploying new routes (not needed when
-each deployment starts from a fresh container image).
+These caches are never regenerated on their own: run `bin/console cache:warmup` (with `APP_ENV=production`) on each
+deployment, see [Console](#console). Once warmed up, `storage/cache` can be read-only.
 
 ## Error Handling and Logging
 
@@ -195,6 +198,20 @@ each deployment starts from a fresh container image).
   `PostHandler` returns a 404 Problem Details response on `NotFoundException`.
 - **Logs**: JSON lines written by Monolog to `LOG_STREAM`. Errors are logged with the request method, URI and response
   status only: headers, cookies and body are never logged, as they can contain credentials.
+
+## Console
+
+`bin/console` is built on Symfony Console, with the same configuration and container as the web application:
+
+```bash
+bin/console                # lists the commands
+bin/console routes:list    # lists the routes, with their middlewares and handler
+bin/console cache:clear    # removes the content of storage/cache
+bin/console cache:warmup   # regenerates the production caches (routes), to run on each deployment
+```
+
+Commands live in `src/Application/Console` and are mapped to their name in `config/commands.php`. They are resolved from
+the container only when they are run, so they can depend on any service.
 
 ## Testing
 
@@ -209,6 +226,7 @@ Pest is included as a dev dependency:
 - Add new handlers in `src/Application/Handler`
 - Declare routes via attributes (or manually in `config/routes.php`)
 - Register app services in `config/container.php` or dedicated service providers
+- Add console commands in `src/Application/Console`, and map them in `config/commands.php`
 - Keep business logic in `Domain`, and external IO in `Infrastructure`
 
 ---

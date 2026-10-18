@@ -16,6 +16,14 @@ readonly class LazyLoadingMiddleware implements MiddlewareInterface
     ) {}
 
     /**
+     * The container entry the middleware is resolved from, usually its class name.
+     */
+    public function getMiddleware(): string
+    {
+        return $this->middleware;
+    }
+
+    /**
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
