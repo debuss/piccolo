@@ -47,6 +47,7 @@
     "laminas/laminas-stratigility": "^4.3",
     "league/container": "^5.2",
     "league/plates": "^3.6",
+    "mezzio/mezzio-cors": "^1.16",
     "mezzio/mezzio-fastroute": "^3.14",
     "mezzio/mezzio-helpers": "^5.20",
     "mezzio/mezzio-platesrenderer": "^2.14",

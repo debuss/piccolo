@@ -9,6 +9,8 @@ use Mezzio\Router\Middleware\{DispatchMiddleware,
     ImplicitOptionsMiddleware,
     MethodNotAllowedMiddleware,
     RouteMiddleware};
+use Mezzio\Cors\Configuration\ConfigurationInterface as CorsConfigurationInterface;
+use Mezzio\Cors\Middleware\CorsMiddleware;
 use Mezzio\Helper\BodyParams\BodyParamsMiddleware;
 use Mezzio\ProblemDetails\ProblemDetailsMiddleware;
 use Psr\Container\ContainerInterface;
@@ -26,6 +28,13 @@ return static function (Application $app, ContainerInterface $container): void
     // Keep the original request URI in the `originalUri` attribute, as middleware piped on a path (e.g. `/api`) only
     // see the URI without that path prefix.
     $app->pipe(OriginalMessages::class);
+
+    // Answer the CORS requests (preflight included) of the origins allowed by CORS_ALLOWED_ORIGINS, and reject the
+    // other origins with a 403. It must be piped before the routing, on every path, as it matches the routes on its
+    // own. CORS is disabled when no origin is allowed: the middleware is not piped at all.
+    if ($container->get(CorsConfigurationInterface::class)->allowedOrigins() !== []) {
+        $app->pipe(CorsMiddleware::class);
+    }
 
     // Pipe more middleware here that you want to execute on every request:
     // - bootstrapping
