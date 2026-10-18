@@ -128,13 +128,14 @@ Middlewares that apply to a whole path, like `/api`, are piped in `config/pipeli
 
 1. `ErrorHandler`
 2. `OriginalMessages` (keeps the original URI for middleware piped on a path)
-3. `/api` scoped middlewares (`ApiAcceptHeaderMiddleware`, `ProblemDetailsMiddleware`, `BodyParamsMiddleware`)
-4. `RouteMiddleware`
-5. `ImplicitHeadMiddleware`
-6. `ImplicitOptionsMiddleware`
-7. `MethodNotAllowedMiddleware`
-8. `DispatchMiddleware`
-9. `NotFoundHandler`
+3. `CorsMiddleware`, only when CORS is enabled (see [CORS](#cors))
+4. `/api` scoped middlewares (`ApiAcceptHeaderMiddleware`, `ProblemDetailsMiddleware`, `BodyParamsMiddleware`)
+5. `RouteMiddleware`
+6. `ImplicitHeadMiddleware`
+7. `ImplicitOptionsMiddleware`
+8. `MethodNotAllowedMiddleware`
+9. `DispatchMiddleware`
+10. `NotFoundHandler`
 
 ### 5) Layer dependencies
 
@@ -178,6 +179,8 @@ Available variables (see `.env.example`):
 - `LOG_STREAM` — where logs are written: `php://stderr` (default) or a file path relative to the app root
 - `LOG_LEVEL` — minimum level to log: `debug` by default, `info` in production
 - `TIMEZONE` — applied to the whole application (default `UTC`)
+- `CORS_ALLOWED_ORIGINS`, `CORS_ALLOWED_HEADERS`, `CORS_EXPOSED_HEADERS`, `CORS_ALLOW_CREDENTIALS`, `CORS_MAX_AGE` —
+  see [CORS](#cors)
 
 `APP_ENV` is read in a single place, through the `Application\Environment` enum, which services can depend on.
 With `APP_ENV=production`:
@@ -188,6 +191,28 @@ With `APP_ENV=production`:
 
 These caches are never regenerated on their own: run `bin/console cache:warmup` (with `APP_ENV=production`) on each
 deployment, see [Console](#console). Once warmed up, `storage/cache` can be read-only.
+
+## CORS
+
+CORS is handled by [mezzio-cors](https://docs.mezzio.dev/mezzio-cors/), and disabled by default: allow the origins of
+your front-ends to enable it.
+
+```dotenv
+CORS_ALLOWED_ORIGINS=https://app.example.com,http://localhost:5173
+```
+
+- Origins accept `*` wildcards (`https://*.example.com`), and `*` allows any origin. The requests of the other origins
+  are rejected with a `403`.
+- The allowed HTTP methods are those of the requested route. The allowed request headers are `Content-Type` by default
+  (`CORS_ALLOWED_HEADERS`), and no response header is exposed besides the CORS-safelisted ones (`CORS_EXPOSED_HEADERS`,
+  e.g. `ETag`).
+- Credentials (cookies, `Authorization` header) are not allowed by default (`CORS_ALLOW_CREDENTIALS`), and cannot be
+  allowed for any origin.
+- Preflight responses are not cached by the browser by default (`CORS_MAX_AGE`, in seconds).
+
+The configuration applies to every route: `CorsMiddleware` is piped before the routing, as it matches the requested
+route on its own. Behind a reverse proxy, configure the trusted proxies (see `RequestHandlerRunnerServiceProvider`) so
+that the scheme and host of the request, compared to the origin, are the public ones.
 
 ## Error Handling and Logging
 

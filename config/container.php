@@ -1,7 +1,8 @@
 <?php declare(strict_types=1);
 
 use Awareness\ContainerAwareInterface;
-use Application\ServiceProvider\{ErrorHandlerServiceProvider,
+use Application\ServiceProvider\{CorsServiceProvider,
+    ErrorHandlerServiceProvider,
     FastRouteRouterServiceProvider,
     HttpFactoryServiceProvider,
     LoggerServiceProvider,
@@ -68,6 +69,7 @@ $container->addServiceProvider(new FastRouteRouterServiceProvider());
 $container->addServiceProvider(new ErrorHandlerServiceProvider());
 $container->addServiceProvider(new TemplateRendererServiceProvider());
 $container->addServiceProvider(new ProblemDetailsServiceProvider());
+$container->addServiceProvider(new CorsServiceProvider());
 
 /*
  * ------------------------------------------
