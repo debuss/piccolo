@@ -5,6 +5,9 @@
 #  docker run -p 80:80 -p 443:443 -e SERVER_NAME=localhost piccolo
 FROM dunglas/frankenphp:1-php8.4
 
+# zip for Composer, OPcache for production
+RUN install-php-extensions zip opcache
+
 # The worker script, and the number of requests after which a worker is restarted (unlimited when empty or 0)
 ENV FRANKENPHP_CONFIG="worker ./public/index.php"
 ENV MAX_REQUESTS=500
