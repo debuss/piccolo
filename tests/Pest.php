@@ -44,13 +44,7 @@ expect()->extend('toBeOne', function () {
 /**
  * The application with the real container, middleware pipeline and routes, as public/index.php runs it.
  */
-function httpApplication(): Application\Application
+function httpApplication(): Piccolo\Application
 {
-    $container = require app_path('bootstrap', 'app.php');
-    $application = $container->get(Application\Application::class);
-
-    (require config_path('pipeline.php'))($application, $container);
-    (require config_path('routes.php'))($application, $container);
-
-    return $application;
+    return Piccolo\Kernel::boot(dirname(__DIR__))->http();
 }

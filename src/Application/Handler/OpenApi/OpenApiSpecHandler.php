@@ -2,8 +2,8 @@
 
 namespace Application\Handler\OpenApi;
 
-use Application\Handler\Handler;
-use Application\Middleware\HttpCacheMiddleware;
+use Piccolo\Http\Handler;
+use Piccolo\Middleware\HttpCacheMiddleware;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Routing\Attribute\{AsController, Get, Middleware};
 

@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+.env
+vendor
+storage/cache/*
+!storage/cache/.gitignore
+storage/logs/*
+!storage/logs/.gitignore
+tests

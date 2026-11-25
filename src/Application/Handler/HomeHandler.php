@@ -2,7 +2,8 @@
 
 namespace Application\Handler;
 
-use Application\Environment;
+use Piccolo\Environment;
+use Piccolo\Http\Handler;
 use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};

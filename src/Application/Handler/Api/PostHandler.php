@@ -2,7 +2,7 @@
 
 namespace Application\Handler\Api;
 
-use Application\Handler\Handler;
+use Piccolo\Http\Handler;
 use Domain\Post\PostClientInterface;
 use Domain\Shared\Exception\NotFoundException;
 use Mezzio\ProblemDetails\ProblemDetailsResponseFactory;

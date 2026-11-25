@@ -1,6 +1,8 @@
 # Copilot Instructions
 
-Piccolo is a PHP 8.4+ application skeleton built on Laminas Stratigility, Mezzio Router, and League Container.
+Piccolo is a PHP 8.4+ application skeleton built on the Piccolo framework (`debuss-a/piccolo-framework`: Laminas
+Stratigility, Mezzio Router) and its scoped container (`debuss-a/piccolo-container`). It runs on a classic PHP SAPI
+as well as in FrankenPHP worker mode.
 It follows Domain-Driven Design conventions and PSR standards throughout (PSR-3, PSR-7, PSR-11, PSR-15, PSR-17, PSR-18).
 
 Read these instructions before suggesting or generating any code.
@@ -13,7 +15,7 @@ Read these instructions before suggesting or generating any code.
 
 ```
 src/
-├── Application/   # HTTP delivery: handlers, middleware, service providers
+├── Application/   # HTTP delivery: handlers, middleware, console commands, service providers
 ├── Domain/        # Business contracts: interfaces, models, exceptions, shared types
 └── Infrastructure # External IO: HTTP clients, persistence adapters
 ```
@@ -25,6 +27,15 @@ src/
 - Infrastructure implementations are only wired to Domain interfaces in `config/container.php` (the composition root).
 - These rules are enforced by the architecture tests in `tests/ArchitectureTest.php`.
 - Shared cross-domain concepts (e.g. `PageResult`, `NotFoundException`) belong in `Domain\Shared`, not in any specific domain namespace.
+- `Domain` must not depend on the framework (`Piccolo\...`) either.
+
+### Framework
+
+The generic code lives in the `debuss-a/piccolo-framework` package (namespace `Piccolo\`), not in the skeleton:
+`Piccolo\Kernel` (boot), `Piccolo\Application`, `Piccolo\Environment`, `Piccolo\Http\Handler` (base class of the
+handlers), the middlewares (`Piccolo\Middleware\*`), the service providers (`Piccolo\ServiceProvider\*`), the runners
+(`Piccolo\Runtime\*`) and the console commands `cache:clear`, `cache:warmup`, `routes:list` (`Piccolo\Console\*`).
+Never copy these classes into `src/`: configure or replace them from `config/container.php`.
 
 ---
 
@@ -74,23 +85,46 @@ use Routing\Attribute\{AsController, Get, Post};
 - The `AttributeRouteLoader` scans `Application\Handler` recursively; there is nothing else to register.
 - If requested, routes can be registered manually in `config/routes.php` instead of using attributes.
 
-**Injection pattern:** dependencies are resolved by League Container via constructor injection (ReflectionContainer autowiring applies).
+**Injection pattern:** dependencies are resolved by the container via constructor injection (autowiring applies; handlers are transient).
 For common PSR dependencies, use `Awareness` traits instead of constructor injection — see below.
 
 ---
 
-## Dependency Injection — League Container
+## Dependency Injection — Piccolo Container
 
-`config/container.php` wires the application. Structure:
-1. `Container` is created with `defaultToShared: true` and a `ReflectionContainer` delegate.
-2. Built-in service providers are registered in a fixed order.
-3. Application-specific bindings (interface → implementation) are added directly.
-4. `afterResolve` hooks inject *Aware* dependencies after resolution.
+`config/container.php` is the composition root of the application: it returns
+`static function (ContainerBuilder $builder, Config $config, Environment $environment): void`, called by the Kernel
+after the service providers of the framework, so its definitions can replace them.
+
+Every service has a **lifetime**:
+
+| Lifetime | Method | Use for |
+|---|---|---|
+| Singleton | `$builder->singleton()` | stateless services, configuration, clients, factories |
+| Scoped | `$builder->scoped()` | services with a per-request state (unit of work, current user, transaction) |
+| Transient | `$builder->transient()` | light services that need a new instance each time |
+
+- The classes that are not registered (handlers, middlewares, ...) are autowired as **transient** services.
+- Each request is handled in its own scope, disposed at the end of the request (`Piccolo\Container\Disposable`).
+- A scoped service cannot be resolved from the root container, nor be a dependency of a singleton: a `ScopeException`
+  is thrown.
+- In FrankenPHP worker mode, the singletons live for all the requests of the worker: **never keep a request state in a
+  singleton**. Make the service scoped, or reset it after each request (`Piccolo\Container\Resettable`, or
+  `$builder->onReset()`).
+
+```php
+$builder->singleton(PostClientInterface::class, PostClient::class);          // interface → implementation
+$builder->singleton(Foo::class, static fn (Config $config) => new Foo(...));  // factory, its parameters are autowired
+$builder->scoped(UnitOfWork::class);
+$builder->alias(BarInterface::class, Bar::class);
+$builder->inflect(FooAwareInterface::class, static fn (FooAwareInterface $service, ContainerInterface $container) =>
+    $service->setFoo($container->get(Foo::class)));
+```
 
 **Adding a new service:**
 - If the service is standalone and simple, add it directly in `config/container.php`.
-- If the service has several related bindings or needs a boot hook, create a `ServiceProvider` in `src/Application/ServiceProvider` that extends `AbstractServiceProvider`.
-- If the provider needs to register `afterResolve` hooks, also implement `BootableServiceProviderInterface` and use `boot()`.
+- If the service has several related definitions, create a service provider in `src/Application/ServiceProvider`
+  implementing `Piccolo\Container\ServiceProvider`, and add it with `$builder->addProvider()` in `config/container.php`.
 
 **Service Provider template:**
 
@@ -99,25 +133,16 @@ For common PSR dependencies, use `Awareness` traits instead of constructor injec
 
 namespace Application\ServiceProvider;
 
-use League\Container\ServiceProvider\AbstractServiceProvider;
+use Piccolo\Container\{ContainerBuilder, ServiceProvider};
 
-class MyServiceProvider extends AbstractServiceProvider
+class MyServiceProvider implements ServiceProvider
 {
 
-    public function provides(string $id): bool
+    public function register(ContainerBuilder $builder): void
     {
-        return in_array($id, [
-            MyInterface::class,
-        ]);
-    }
-
-    public function register(): void
-    {
-        $this->getContainer()
-            ->add(MyInterface::class, MyImplementation::class);
+        $builder->singleton(MyInterface::class, MyImplementation::class);
     }
 }
-
 ```
 
 ---
@@ -125,7 +150,8 @@ class MyServiceProvider extends AbstractServiceProvider
 ## Awareness pattern
 
 `debuss-a/awareness` provides interface+trait pairs to inject PSR dependencies without constructor bloat.  
-`afterResolve` hooks in service providers (or the container) call the setters automatically after resolution.
+Inflectors (`$builder->inflect()`) in the service providers of the framework call the setters automatically after
+the creation of the service.
 
 Available interfaces (all auto-injected via existing hooks):
 
@@ -138,7 +164,7 @@ Available interfaces (all auto-injected via existing hooks):
 | `ServerRequestFactoryAwareInterface` | `setServerRequestFactory()` | `HttpFactoryServiceProvider` |
 | `UriFactoryAwareInterface` | `setUriFactory()` | `HttpFactoryServiceProvider` |
 | `UploadedFileFactoryAwareInterface` | `setUploadedFileFactory()` | `HttpFactoryServiceProvider` |
-| `ContainerAwareInterface` | `setContainer()` | `config/container.php` |
+| `ContainerAwareInterface` | `setContainer()` (the scope of the request, or the root container) | `ApplicationServiceProvider` |
 
 Usage pattern:
 
@@ -156,7 +182,7 @@ class MyHandler extends Handler implements LoggerAwareInterface, RequestFactoryA
 ```
 
 **Note:** Not all PSR interfaces available in `Awareness` are auto-injected. Only the one needed by this application
-are. You can add missing awareness hooks in the corresponding service provider if needed.
+are. You can add missing inflectors in `config/container.php` if needed.
 
 ---
 
@@ -330,19 +356,19 @@ $container->add(PostClientInterface::class, PostClient::class);
 
   Only catch the exceptions the handler knows the meaning of, let everything else bubble up to the middleware.
   Never catch `Infrastructure` exceptions in `Application` (e.g. `ClientException`): they become a generic 500.
-- **Logging**: `ErrorHandler` and `ProblemDetailsMiddleware` share `Application\Http\ErrorLogListener`, which only logs
+- **Logging**: `ErrorHandler` and `ProblemDetailsMiddleware` share `Piccolo\Http\ErrorLogListener`, which only logs
   the request method, the original URI and the response status. Never log request headers, cookies or body: they can
   contain credentials (Authorization header, session cookie, password, ...).
 - **Server request creation errors** (invalid header, malformed uploaded files, ...) happen before the pipeline, when
   `Debuss\ServerRequestFactory\ServerRequestFactory` builds the request from the globals, and are handled by
-  `Application\Http\ServerRequestErrorResponseGenerator`: 400 response and warning log for a malformed client request
+  `Piccolo\Http\ServerRequestErrorResponseGenerator`: 400 response and warning log for a malformed client request
   (`BadRequestException`), 500 response and error log for anything else (configuration, uploaded files, ...).
 
 ---
 
 ## Configuration
 
-Configuration is loaded once by `bootstrap/app.php` from `config/configuration.php` (`borschphp/config`), then added
+Configuration is loaded once by `Piccolo\Kernel::boot()` from `config/configuration.php` (`borschphp/config`), then added
 to the container. Sources are merged in order, the last one wins:
 
 1. the `.env` file, optional (copy from `.env.example`)
@@ -354,7 +380,7 @@ Inject `Config $config` in any constructor — it is autowired:
 $config->getOrDefault('LOGGER_NAME', 'app');
 ```
 
-**Never read `APP_ENV` directly.** Depend on the `Application\Environment` enum (also autowired) instead:
+**Never read `APP_ENV` directly.** Depend on the `Piccolo\Environment` enum (also autowired) instead:
 
 ```php
 public function __construct(private Environment $environment) {}
@@ -362,7 +388,7 @@ public function __construct(private Environment $environment) {}
 if ($this->environment->isProduction()) { /* ... */ }
 ```
 
-`bootstrap/app.php` is also where the PHP runtime settings depending on the configuration are applied
+`Piccolo\Kernel::boot()` is also where the PHP runtime settings depending on the configuration are applied
 (`display_errors`, timezone from `TIMEZONE`).  
 In production, set `APP_ENV=production` as a real server environment variable rather than relying on `.env`.
 
@@ -385,7 +411,7 @@ Other configuration sources are available in `borschphp/config` (add them in `co
 
 ## Helper functions
 
-Globally available (loaded via `bootstrap/helpers.php`):
+Globally available (provided by the framework, from the root directory given to `Kernel::boot()`, see `Piccolo\Paths`):
 
 | Function | Returns |
 |---|---|
@@ -414,11 +440,13 @@ Globally available (loaded via `bootstrap/helpers.php`):
 
 ## Console commands
 
-- `bin/console` runs Symfony Console with the container built by `bootstrap/app.php`.
+- `bin/console` runs Symfony Console with the container built by `Piccolo\Kernel`, the commands being resolved from a
+  scope.
 - Commands live in `src/Application/Console`, extend `Symfony\Component\Console\Command\Command` and declare their name
   and description with `#[AsCommand]`.
-- Map each command name to its class in `config/commands.php`: commands are resolved lazily from the container, so
-  inject their dependencies through the constructor.
+- Map each command name to its class in the array returned by `config/commands.php` (the commands of the framework are
+  already registered): commands are resolved lazily from the container, so inject their dependencies through the
+  constructor.
 - The production caches (routes) are regenerated by `bin/console cache:warmup`, to run on each deployment.
 
 ---
@@ -438,11 +466,14 @@ Pest is the test framework (`pestphp/pest`). Tests live in `tests/`, unit tests 
 
 - Do not omit `declare(strict_types=1)` from any PHP source file in `src/`.
 - Do not import `Infrastructure` classes anywhere in `Application` — always depend on Domain interfaces.
-- Do not use classes of a specific PSR-7 implementation (e.g. Diactoros) outside `config/container.php` — use the PSR-17
-  factories.
+- Do not use classes of a specific PSR-7 implementation (e.g. Diactoros) in `src/` — use the PSR-17 factories (the
+  implementation is chosen by `HttpFactoryServiceProvider`, replaceable in `config/container.php`).
 - Do not log request headers, cookies or body.
 - Do not use `Logger::class` directly where `LoggerInterface::class` is sufficient.
-- Do not resolve container entries eagerly inside service provider `register()` — prefer lazy `addArgument()` chains.
+- Do not resolve container entries eagerly inside service provider `register()` — use factory closures, their
+  parameters are resolved when the service is first needed.
+- Do not keep a request state (current user, request identifier, ...) in a singleton — use a scoped service.
+- Do not copy the classes of the framework into `src/`.
 - Do not suppress exceptions with empty `catch` blocks.
 - Do not add a route to `config/routes.php` for a handler that already declares routing attributes — it will throw an exception.
 - Do not place domain types or shared concepts in the `Application` namespace.

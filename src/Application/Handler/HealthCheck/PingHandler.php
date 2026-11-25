@@ -2,7 +2,7 @@
 
 namespace Application\Handler\HealthCheck;
 
-use Application\Handler\Handler;
+use Piccolo\Http\Handler;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use function time;
 

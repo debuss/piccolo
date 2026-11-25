@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
-use Application\Application;
-use Application\Middleware\{ApiAcceptHeaderMiddleware, RequestIdMiddleware};
+use Piccolo\Application;
+use Piccolo\Middleware\{ApiAcceptHeaderMiddleware, RequestIdMiddleware};
 use Laminas\Stratigility\Handler\NotFoundHandler;
 use Laminas\Stratigility\Middleware\{ErrorHandler, OriginalMessages};
 use Mezzio\Router\Middleware\{DispatchMiddleware,
