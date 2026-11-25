@@ -33,26 +33,9 @@
       "Tests\\": "tests/"
     }
   },
-  "repositories": [
-    {
-      "type": "path",
-      "url": "../piccolo-framework",
-      "options": {
-        "symlink": true
-      }
-    },
-    {
-      "type": "path",
-      "url": "../piccolo-container",
-      "options": {
-        "symlink": true
-      }
-    }
-  ],
   "require": {
     "php": "^8.4",
-    "debuss-a/piccolo-container": "^0.1@dev",
-    "debuss-a/piccolo-framework": "^0.1@dev",
+    "debuss-a/piccolo-framework": "^0.1",
     "php-http/curl-client": "^2.4",
     "psr/http-client": "^1.0"
   },
