@@ -44,10 +44,12 @@ The skeleton only contains your application: handlers, domain, infrastructure, a
 ## Getting Started
 
 ```bash
-composer install
-cp .env.example .env
+composer create-project debuss-a/piccolo my-app   # also creates the .env file from .env.example
+cd my-app
 composer serve
 ```
+
+From a clone of this repository, run `composer install` and `cp .env.example .env` instead.
 
 Application runs at: `http://localhost:8080`
 
@@ -74,6 +76,7 @@ Application runs at: `http://localhost:8080`
 │   ├── logs/
 │   ├── openapi.yaml
 │   └── templates/
+├── tests/               # Pest: architecture, end-to-end (Feature) and unit tests
 └── Dockerfile           # FrankenPHP in worker mode
 ```
 
@@ -234,9 +237,9 @@ CORS_ALLOWED_ORIGINS=https://app.example.com,http://localhost:5173
 - Preflight responses are not cached by the browser by default (`CORS_MAX_AGE`, in seconds).
 
 The configuration applies to every route: `CorsMiddleware` is piped before the routing, as it matches the requested
-route on its own. Behind a reverse proxy, configure the trusted proxies (register `Debuss\ServerRequestFactory\ServerRequestFactory` again with a
-`TrustedProxies` argument in `config/container.php`, see `ApplicationServiceProvider`) so
-that the scheme and host of the request, compared to the origin, are the public ones.
+route on its own. Behind a reverse proxy, configure the trusted proxies (register
+`Debuss\ServerRequestFactory\ServerRequestFactory` again with a `TrustedProxies` argument in `config/container.php`, see
+`ApplicationServiceProvider`) so that the scheme and host of the request, compared to the origin, are the public ones.
 
 ## Error Handling and Logging
 
@@ -291,8 +294,13 @@ docker run -p 80:80 -p 443:443 -e SERVER_NAME=localhost piccolo
 Pest is included as a dev dependency:
 
 ```bash
-./vendor/bin/pest
+composer test
 ```
+
+- `tests/ArchitectureTest.php` enforces the [layer dependencies](#5-layer-dependencies).
+- `tests/Feature/HttpTest.php` sends requests through the real kernel, container, pipeline and routes, with the
+  `httpApplication()` helper of `tests/Pest.php`.
+- The classes of the framework and of the container are tested in their own packages.
 
 ## Extending the Skeleton
 
