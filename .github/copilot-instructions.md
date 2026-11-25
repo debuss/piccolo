@@ -57,13 +57,13 @@ Never copy these classes into `src/`: configure or replace them from `config/con
 Handlers are `Psr\Http\Server\RequestHandlerInterface` and live in `src/Application/Handler`.  
 They are organized in sub-namespaces by concern (e.g. `Application\Handler\Api`, `Application\Handler\HealthCheck`, `Application\Handler\OpenApi`).
 
-Handlers extend the abstract `Application\Handler\Handler` (which implements `RequestHandlerInterface`, so only
+Handlers extend the abstract `Piccolo\Http\Handler` of the framework (which implements `RequestHandlerInterface`, so only
 `handle()` has to be written). It builds responses with the PSR-17 factories (injected through the Awareness pattern):
 use `$this->json($data, $status)` and `$this->html($content, $status)`, or `$this->responseFactory` /
 `$this->streamFactory` for other responses. `json()` lets `JsonException` bubble up when the data cannot be encoded.
 In unit tests, set the factories with `setResponseFactory()` / `setStreamFactory()`, as the container does.
 Never instantiate response classes of a PSR-7 implementation (e.g. `Laminas\Diactoros\Response\JsonResponse`): the
-implementation is only chosen in `config/container.php`.
+implementation is only chosen by the `HttpFactoryServiceProvider` of the framework (replaceable in `config/container.php`).
 
 **Routing is attribute-based.** Always declare routes with attributes:
 
@@ -169,6 +169,7 @@ Available interfaces (all auto-injected via existing hooks):
 Usage pattern:
 
 ```php
+use Piccolo\Http\Handler;
 use Psr\Log\{LoggerAwareInterface, LoggerAwareTrait};
 use Awareness\{RequestFactoryAwareInterface, RequestFactoryAwareTrait};
 
@@ -331,8 +332,11 @@ class PostClient implements PostClientInterface, RequestFactoryAwareInterface
 Bind the interface to the implementation in `config/container.php`:
 
 ```php
-$container->add(PostClientInterface::class, PostClient::class);
+$builder->singleton(PostClientInterface::class, PostClient::class);
 ```
+
+Clients are usually singletons: they must not keep a state of a request (see the lifetimes in
+[Dependency Injection](#dependency-injection--piccolo-container)).
 
 ---
 
@@ -455,6 +459,10 @@ Globally available (provided by the framework, from the root directory given to 
 
 Pest is the test framework (`pestphp/pest`). Tests live in `tests/`, unit tests mirror the `src/` structure in
 `tests/Unit`, and `tests/ArchitectureTest.php` enforces the layer boundaries.
+
+End-to-end tests go through the real kernel, container, pipeline and routes: `httpApplication()` (defined in
+`tests/Pest.php`) returns `Kernel::boot(...)->http()`, to call `->handle(new ServerRequest(...))` on (see
+`tests/Feature/HttpTest.php`). The classes of the framework are tested in its own package, not here.
 
 ```bash
 ./vendor/bin/pest
