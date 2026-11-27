@@ -313,6 +313,49 @@ docker run -p 80:80 -p 443:443 -e SERVER_NAME=localhost piccolo
   the service scoped, or reset it after each request (implement `Piccolo\Container\Resettable`).
 - The `Dockerfile` runs `bin/console cache:warmup` (`APP_ENV=production`), so the routes are compiled at build time.
 
+## Database (stored procedures)
+
+The skeleton has no database. [debuss-a/piccolo-database](https://github.com/debuss/piccolo-database) (suggested in
+`composer.json`) gives a database access **through stored procedures only**, for a database user only granted
+`EXECUTE` on the procedures validated by the DBAs: there is no way to run a SQL query.
+
+```bash
+composer require debuss-a/piccolo-database
+```
+
+```php
+// config/container.php
+$builder->addProvider(new Piccolo\Database\ServiceProvider\DatabaseServiceProvider());
+```
+
+Each procedure is a class of the Infrastructure, whose promoted constructor parameters are the parameters of the
+procedure, in their order: the IDE and PHPStan know them, and the constructor validates them before the call.
+
+```php
+namespace Infrastructure\Country\Procedure;
+
+/** @implements Query<CountryRow> */
+#[StoredProcedure('sp_fetch_country_by_iso', timeout: 5)]
+final readonly class FetchCountryByIso implements Query
+{
+    public function __construct(#[Param('p_iso')] public string $iso) {}
+
+    public function rowClass(): string
+    {
+        return CountryRow::class;
+    }
+}
+```
+
+A repository of the Infrastructure implements an interface of the Domain with the `ProcedureRunnerInterface`
+(`all()`, `single()`, `singleOrNull()`, `scalar()`, `execute()`, `transaction()`, ...), and turns the rows into objects of
+the Domain. It is configured with `DB_DSN`, `DB_USER`, `DB_PASSWORD`, `DB_PARAMETER_PREFIX`, ..., handles the lost
+connections and the transactions left open in worker mode, and gives a `FakeProcedureRunner` for the tests: see its
+README.
+
+The architecture tests forbid `PDO` in `src/`, and the database (`Piccolo\Database`, `StoredProcedures`) in the
+Application and the Domain.
+
 ## Testing
 
 Pest is included as a dev dependency:

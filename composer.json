@@ -42,6 +42,9 @@
   "require-dev": {
     "pestphp/pest": "^5.1"
   },
+  "suggest": {
+    "debuss-a/piccolo-database": "For the database access through stored procedures only, a class per procedure"
+  },
   "scripts": {
     "post-create-project-cmd": [
       "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""

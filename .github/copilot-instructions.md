@@ -343,6 +343,30 @@ Clients are usually singletons: they must not keep a state of a request (see the
 
 ---
 
+## Database — stored procedures
+
+When the application has a database, it uses `debuss-a/piccolo-database`: the database is only accessed through its
+stored procedures, validated by the DBAs. Never write SQL, never use `PDO` (forbidden by `tests/ArchitectureTest.php`),
+and never call `SqlConnection::getPdo()`.
+
+- One class per procedure, in `Infrastructure\{Context}\Procedure`, `final readonly`, implementing
+  `Piccolo\Database\Query` (rows, with `@implements Query<RowClass>` and `rowClass()`), `ScalarQuery` (a single value)
+  or `Command` (changes, OUT values): `#[StoredProcedure('sp_name', timeout: 5)]` on the class.
+- The parameters of the procedure are the **promoted constructor parameters, in the order of the procedure** (MySQL
+  and SQL Server give them by position). Their name is the property with `DB_PARAMETER_PREFIX`, or
+  `#[Param('p_name', type: DbType::DATE, mode: ParameterMode::INOUT)]`; OUT parameters go on the class,
+  `#[Output('p_id', DbType::INTEGER)]`, after the constructor ones.
+- Validate the values in the constructor, throwing an `InvalidArgumentException` with a clear message.
+- The row classes (`CountryRow`) are `final readonly` classes of the Infrastructure, next to the procedures (their
+  `#[Column]` attributes are a database detail): the repository turns them into Domain objects.
+- A repository of `Infrastructure\{Context}` implements the Domain interface with `ProcedureRunnerInterface`
+  (`all()`, `first()`, `firstOrNull()`, `single()`, `singleOrNull()`, `resultSet()`, `scalar()`, `execute()`,
+  `transaction()`), and is wired to the interface in `config/container.php`.
+- Translate the exceptions of the procedures the Domain knows about (e.g. `ProcedureErrorException` for a business
+  error raised by the procedure) into Domain exceptions in the repository; let the others bubble up.
+- Test the repositories with `Piccolo\Database\Testing\FakeProcedureRunner` (`willReturnRows()`, `willReturnScalar()`,
+  `willReturnResult()`, `willThrow()`, `assertCalled()`), never with a real database in the unit tests.
+
 ## Error handling
 
 - **HTML errors**: Stratigility `ErrorHandler` with its `ErrorResponseGenerator`: the exception (message and trace) is
@@ -516,3 +540,4 @@ tested in its own package, not here.
 - Do not suppress exceptions with empty `catch` blocks.
 - Do not add a route to `config/routes.php` for a handler that already declares routing attributes — it will throw an exception.
 - Do not place domain types or shared concepts in the `Application` namespace.
+- Do not write SQL nor use `PDO`: call the stored procedures through `ProcedureRunnerInterface`, one class per procedure.
