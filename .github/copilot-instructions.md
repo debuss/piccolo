@@ -350,21 +350,31 @@ Clients are usually singletons: they must not keep a state of a request (see the
 - **API errors**: `ProblemDetailsMiddleware` is scoped to `/api` in the pipeline and uses the stock
   `ProblemDetailsResponseFactory`: any exception becomes a generic 500, with the exception details only outside
   production.
+- **HTTP exceptions**: throw the exceptions of `Piccolo\Http\Exception` (`NotFoundException`, `BadRequestException`,
+  `UnauthorizedException`, `ForbiddenException`, `ConflictException`, `UnprocessableEntityException`, or
+  `HttpException` with any 4xx/5xx status) from a handler or a middleware of the `Application` layer: under `/api`,
+  the `ProblemDetailsMiddleware` answers with their status, detail and additional data (in production too, so the
+  detail must be meant for the client); elsewhere, the `ErrorHandler` answers with their status. Never throw them from
+  `Domain` or `Infrastructure`.
 - **Domain exceptions**: the handler catches the Domain exceptions it can translate into a meaningful response and
-  returns it with the `ProblemDetailsResponseFactory` (injected in the constructor), e.g. in `PostHandler`:
+  throws the matching HTTP exception, e.g. in `PostHandler`:
 
   ```php
   try {
       return $this->json($this->client->getById((int)$id));
   } catch (NotFoundException $e) {
-      return $this->problemDetails->createResponse($request, 404, $e->getMessage());
+      throw new HttpNotFoundException($e->getMessage(), previous: $e);
   }
   ```
+
+  For validation errors, put them in the additional data:
+  `throw new UnprocessableEntityException('The post is invalid', ['errors' => ['title' => 'Required']]);`
 
   Only catch the exceptions the handler knows the meaning of, let everything else bubble up to the middleware.
   Never catch `Infrastructure` exceptions in `Application` (e.g. `ClientException`): they become a generic 500.
 - **Logging**: `ErrorHandler` and `ProblemDetailsMiddleware` share `Piccolo\Http\ErrorLogListener`, which only logs
-  the request method, the original URI and the response status. Never log request headers, cookies or body: they can
+  the request method, the original URI and the response status, as a warning for a 4xx response and as an error for a
+  5xx one. Never log request headers, cookies or body: they can
   contain credentials (Authorization header, session cookie, password, ...).
 - **Server request creation errors** (invalid header, malformed uploaded files, ...) happen before the pipeline, when
   `Debuss\ServerRequestFactory\ServerRequestFactory` builds the request from the globals, and are handled by

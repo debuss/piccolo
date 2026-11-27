@@ -246,10 +246,11 @@ route on its own. Behind a reverse proxy, configure the trusted proxies (registe
 - **HTML errors**: Stratigility `ErrorHandler`; the exception (message and trace) is only displayed outside
   production, otherwise the reason phrase is returned.
 - **API errors**: `ProblemDetailsMiddleware` (scoped to `/api`) returns RFC 7807 responses. Unknown exceptions become a
-  generic 500, with details only outside production. Handlers translate the Domain exceptions they know about, e.g.
-  `PostHandler` returns a 404 Problem Details response on `NotFoundException`.
-- **Logs**: JSON lines written by Monolog to `LOG_STREAM`. Errors are logged with the request method, URI and response
-  status only: headers, cookies and body are never logged, as they can contain credentials.
+  generic 500, with details only outside production. Handlers translate the Domain exceptions they know about into
+  the HTTP exceptions of the framework (`Piccolo\Http\Exception\NotFoundException`, `UnprocessableEntityException`,
+  ...), answered with their status and detail, e.g. `PostHandler` throws a `NotFoundException` for an unknown post.
+- **Logs**: JSON lines written by Monolog to `LOG_STREAM`. Errors are logged (as warnings for a 4xx response) with the
+  request method, URI and response status only: headers, cookies and body are never logged, as they can contain credentials.
 - **Request identifier**: `RequestIdMiddleware` keeps the `X-Request-Id` header set by a reverse proxy or a load
   balancer (letters, digits, `.`, `_`, `:` and `-`, at most 128 characters), or generates one. It is added to every log
   record of the request (`extra.request_id`), set in the `request_id` attribute of the request, and sent back in the
