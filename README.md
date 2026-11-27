@@ -144,6 +144,11 @@ OpenAPI document is cached by the clients thanks to `HttpCacheMiddleware` (`Cach
 public function handle(ServerRequestInterface $request): ResponseInterface
 ```
 
+By default, any cache can keep these responses for an hour (`public, max-age=3600`). Register the middleware with other
+settings in `config/container.php` (`new HttpCacheMiddleware(maxAge: 600, private: true)`, a max age of 0 revalidating
+each request with the `ETag`), or set the `Cache-Control` (`no-store` to disable it) or `ETag` header of a response in
+its handler: they are kept.
+
 Middlewares that apply to a whole path, like `/api`, are piped in `config/pipeline.php` instead.
 
 ### 4) Middleware pipeline
@@ -151,16 +156,26 @@ Middlewares that apply to a whole path, like `/api`, are piped in `config/pipeli
 `config/pipeline.php` keeps a Mezzio-style flow:
 
 1. `RequestIdMiddleware` (identifies the request, see [Error Handling and Logging](#error-handling-and-logging))
-2. `ErrorHandler`
-3. `OriginalMessages` (keeps the original URI for middleware piped on a path)
-4. `CorsMiddleware`, only when CORS is enabled (see [CORS](#cors))
-5. `/api` scoped middlewares (`ApiAcceptHeaderMiddleware`, `ProblemDetailsMiddleware`, `BodyParamsMiddleware`)
-6. `RouteMiddleware`
-7. `ImplicitHeadMiddleware`
-8. `ImplicitOptionsMiddleware`
-9. `MethodNotAllowedMiddleware`
-10. `DispatchMiddleware`
-11. `NotFoundHandler`
+2. `SecurityHeadersMiddleware` (`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, and HSTS in production)
+3. `ErrorHandler`
+4. `OriginalMessages` (keeps the original URI for middleware piped on a path)
+5. `CorsMiddleware`, only when CORS is enabled (see [CORS](#cors))
+6. `/api` scoped middlewares (`ApiAcceptHeaderMiddleware`, `ProblemDetailsMiddleware`, `BodyParamsMiddleware`)
+7. `RouteMiddleware`
+8. `ImplicitHeadMiddleware`
+9. `ImplicitOptionsMiddleware`
+10. `MethodNotAllowedMiddleware`
+11. `DispatchMiddleware`
+12. `NotFoundHandler`
+
+The security headers set by a handler are kept. To replace or remove some of them for the whole application, register
+the middleware again in `config/container.php`:
+
+```php
+$builder->singleton(SecurityHeadersMiddleware::class, static fn (Environment $environment) =>
+    new SecurityHeadersMiddleware($environment, ['X-Frame-Options' => 'SAMEORIGIN', 'Strict-Transport-Security' => null])
+);
+```
 
 ### 5) Layer dependencies
 
@@ -308,7 +323,13 @@ composer test
 
 - `tests/ArchitectureTest.php` enforces the [layer dependencies](#5-layer-dependencies).
 - `tests/Feature/HttpTest.php` sends requests through the real kernel, container, pipeline and routes, with the
-  `httpApplication()` helper of `tests/Pest.php`.
+  `TestClient` of the framework (`client()` in `tests/Pest.php`):
+
+  ```php
+  client()->get('/api/ping')->assertOk()->assertHeader('X-Request-Id');
+  client()->post('/api/v1/posts', ['title' => 'Hello'])->assertStatus(201)->assertJson(['title' => 'Hello']);
+  expect(client()->get('/api/ping')->json())->toHaveKey('ack');
+  ```
 - The classes of the framework and of the container are tested in their own packages.
 
 ## Extending the Skeleton

@@ -446,8 +446,14 @@ Globally available (provided by the framework, from the root directory given to 
 - Middleware order in `config/pipeline.php` is significant — never reorder without understanding side effects.
 - Middlewares are executed in the order they are declared, and the request flows from top to bottom.
 - `RequestIdMiddleware` must always be **first** (outermost), so that errors are logged with the request identifier,
-  followed by `ErrorHandler`, then `OriginalMessages` (keeps the original URI, as middleware piped on a path only see
-  the URI without that path prefix).
+  followed by `SecurityHeadersMiddleware` (so that the error responses have the security headers too), then
+  `ErrorHandler`, then `OriginalMessages` (keeps the original URI, as middleware piped on a path only see the URI
+  without that path prefix).
+- Never remove a security header for the whole application without a reason: set a different value on the response
+  in the handler (it is kept), or configure `SecurityHeadersMiddleware` in `config/container.php`.
+- Cache settings of a route: `HttpCacheMiddleware` keeps the `Cache-Control` and `ETag` set by the handler; use
+  `Cache-Control: no-store` for a response that must not be cached (content of a user under a cached route), and
+  `private` for the content of a user that the browser may keep.
 - `ProblemDetailsMiddleware` is scoped to `/api` — do not move it to the global scope.
 - `CorsMiddleware` (mezzio-cors) is piped globally, before `RouteMiddleware`, and only when CORS is enabled
   (`CORS_ALLOWED_ORIGINS`) — do not scope it to a path, it matches the routes on its own with the full URI.
@@ -475,9 +481,19 @@ Globally available (provided by the framework, from the root directory given to 
 Pest is the test framework (`pestphp/pest`). Tests live in `tests/`, unit tests mirror the `src/` structure in
 `tests/Unit`, and `tests/ArchitectureTest.php` enforces the layer boundaries.
 
-End-to-end tests go through the real kernel, container, pipeline and routes: `httpApplication()` (defined in
-`tests/Pest.php`) returns `Kernel::boot(...)->http()`, to call `->handle(new ServerRequest(...))` on (see
-`tests/Feature/HttpTest.php`). The classes of the framework are tested in its own package, not here.
+End-to-end tests go through the real kernel, container, pipeline and routes with the `Piccolo\Testing\TestClient` of
+the framework, given by `client()` (defined in `tests/Pest.php`, see `tests/Feature/HttpTest.php`):
+
+```php
+client()->get('/api/v1/posts/1')->assertOk()->assertJson(['id' => 1]);
+client()->post('/api/v1/posts', ['title' => 'Hello'])->assertStatus(201);   // JSON body
+client()->form('POST', '/contact', ['email' => 'a@example.com'])->assertStatus(302);
+expect(client()->get('/api/ping')->json())->toHaveKey('ack');
+```
+
+Never instantiate a request of a PSR-7 implementation in the tests: use `client()->createRequest(...)` (then
+`client()->handle($request)`) for a request to complete with cookies or attributes. The classes of the framework are
+tested in its own package, not here.
 
 ```bash
 ./vendor/bin/pest

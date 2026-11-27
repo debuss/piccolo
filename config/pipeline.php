@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 
 use Piccolo\Application;
-use Piccolo\Middleware\{ApiAcceptHeaderMiddleware, RequestIdMiddleware};
+use Piccolo\Middleware\{ApiAcceptHeaderMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware};
 use Laminas\Stratigility\Handler\NotFoundHandler;
 use Laminas\Stratigility\Middleware\{ErrorHandler, OriginalMessages};
 use Mezzio\Router\Middleware\{DispatchMiddleware,
@@ -25,6 +25,10 @@ return static function (Application $app, ContainerInterface $container): void
     // Identify the request (X-Request-Id header) and add its identifier to every log record. It comes first, so that
     // the errors are logged with the identifier and their responses have the header too.
     $app->pipe(RequestIdMiddleware::class);
+
+    // Add the security headers (nosniff, Referrer-Policy, X-Frame-Options, and HSTS in production) to every response,
+    // the error ones too, unless the handler set them. Replace or remove some of them in config/container.php.
+    $app->pipe(SecurityHeadersMiddleware::class);
 
     // The error handler should be the first (most outer) middleware after it, to catch all exceptions.
     $app->pipe(ErrorHandler::class);

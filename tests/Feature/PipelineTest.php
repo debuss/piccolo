@@ -7,7 +7,7 @@ use Mezzio\Router\{FastRouteRouter, RouteCollector};
 use Mezzio\Router\Middleware\RouteMiddleware;
 use Piccolo\Application;
 use Piccolo\Container\ContainerBuilder;
-use Piccolo\Middleware\{LazyLoadingMiddleware, RequestIdMiddleware};
+use Piccolo\Middleware\{LazyLoadingMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware};
 use Piccolo\Runtime\RunnerInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
@@ -38,6 +38,13 @@ function pipedMiddlewares(ProjectConfiguration $corsConfiguration): array
 
 test('pipes the RequestIdMiddleware first, so that it wraps the error handler', function () {
     expect(pipedMiddlewares(new ProjectConfiguration([]))[0])->toBe(RequestIdMiddleware::class);
+});
+
+test('pipes the SecurityHeadersMiddleware right after, so that the error responses have the headers too', function () {
+    $middlewares = pipedMiddlewares(new ProjectConfiguration([]));
+
+    expect($middlewares[1])->toBe(SecurityHeadersMiddleware::class)
+        ->and($middlewares[2])->toBe(Laminas\Stratigility\Middleware\ErrorHandler::class);
 });
 
 test('does not pipe the CORS middleware when no origin is allowed', function () {

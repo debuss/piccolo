@@ -24,7 +24,7 @@ function postHandler(): PostHandler
         }
     });
 
-    $container = Piccolo\Kernel::boot(dirname(__DIR__, 2))->container();
+    $container = client()->container();
     $handler->setResponseFactory($container->get(ResponseFactoryInterface::class));
     $handler->setStreamFactory($container->get(StreamFactoryInterface::class));
 
@@ -32,21 +32,21 @@ function postHandler(): PostHandler
 }
 
 test('answers the post', function () {
-    $response = postHandler()->handle(httpRequest('GET', '/api/v1/posts/1')->withAttribute('id', '1'));
+    $response = postHandler()->handle(client()->createRequest('GET', '/api/v1/posts/1')->withAttribute('id', '1'));
 
     expect($response->getStatusCode())->toBe(200)
         ->and(json_decode((string)$response->getBody(), true))->toMatchArray(['id' => 1, 'title' => 'Title']);
 });
 
 test('throws an HTTP NotFoundException for an unknown post', function () {
-    postHandler()->handle(httpRequest('GET', '/api/v1/posts/2')->withAttribute('id', '2'));
+    postHandler()->handle(client()->createRequest('GET', '/api/v1/posts/2')->withAttribute('id', '2'));
 })->throws(HttpNotFoundException::class, 'Post "2" could not be found');
 
 test('is answered as a 404 Problem Details response for an unknown post', function () {
-    $middleware = Piccolo\Kernel::boot(dirname(__DIR__, 2))->container()->get(ProblemDetailsMiddleware::class);
+    $middleware = client()->container()->get(ProblemDetailsMiddleware::class);
 
     $response = $middleware->process(
-        httpRequest('GET', '/api/v1/posts/2', ['Accept' => 'application/json'])->withAttribute('id', '2'),
+        client()->createRequest('GET', '/api/v1/posts/2', ['Accept' => 'application/json'])->withAttribute('id', '2'),
         postHandler()
     );
 
