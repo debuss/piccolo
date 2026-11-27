@@ -59,8 +59,10 @@ They are organized in sub-namespaces by concern (e.g. `Application\Handler\Api`,
 
 Handlers extend the abstract `Piccolo\Http\Handler` of the framework (which implements `RequestHandlerInterface`, so only
 `handle()` has to be written). It builds responses with the PSR-17 factories (injected through the Awareness pattern):
-use `$this->json($data, $status)` and `$this->html($content, $status)`, or `$this->responseFactory` /
-`$this->streamFactory` for other responses. `json()` lets `JsonException` bubble up when the data cannot be encoded.
+use `$this->json($data, $status)`, `$this->html($content, $status)`, `$this->text($content, $status)`,
+`$this->xml($content, $status)`, `$this->redirect($uri, $status = 302)` (3xx only) and `$this->empty($status = 204)`, or
+`$this->responseFactory` / `$this->streamFactory` for other responses. `json()` lets `JsonException` bubble up when the
+data cannot be encoded.
 In unit tests, set the factories with `setResponseFactory()` / `setStreamFactory()`, as the container does.
 Never instantiate response classes of a PSR-7 implementation (e.g. `Nyholm\Psr7\Response`): the
 implementation is only chosen by the `HttpFactoryServiceProvider` of the framework (replaceable in `config/container.php`).
