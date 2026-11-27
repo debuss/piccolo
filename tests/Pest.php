@@ -48,3 +48,21 @@ function httpApplication(): Piccolo\Application
 {
     return Piccolo\Kernel::boot(dirname(__DIR__))->http();
 }
+
+/**
+ * A request for the end-to-end tests, created with the PSR-17 factory of the container: the tests do not depend on the
+ * PSR-7 implementation chosen by the framework.
+ */
+function httpRequest(string $method, string $uri, array $headers = []): Psr\Http\Message\ServerRequestInterface
+{
+    $request = Piccolo\Kernel::boot(dirname(__DIR__))
+        ->container()
+        ->get(Psr\Http\Message\ServerRequestFactoryInterface::class)
+        ->createServerRequest($method, $uri);
+
+    foreach ($headers as $name => $value) {
+        $request = $request->withHeader($name, $value);
+    }
+
+    return $request;
+}
