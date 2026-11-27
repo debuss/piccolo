@@ -24,7 +24,7 @@ The skeleton only contains your application: handlers, domain, infrastructure, a
 - **Runtime**
   - PHP 8.4+, classic SAPI (PHP-FPM, built-in server, ...) or FrankenPHP worker mode
   - `laminas/laminas-stratigility`, `laminas/laminas-httphandlerrunner`
-  - `laminas/laminas-diactoros` (default PSR-7 / PSR-17 implementation, swappable)
+  - `nyholm/psr7` (default PSR-7 / PSR-17 implementation, swappable)
   - `debuss-a/server-request-factory` (server request from the globals, with any PSR-17 implementation)
 - **Routing**
   - `mezzio/mezzio-fastroute`
@@ -92,7 +92,7 @@ environment and PHP settings, then the container. `Piccolo\Application` mirrors 
 
 The service providers of the framework register:
 
-- HTTP factories (PSR-17, Laminas Diactoros by default)
+- HTTP factories (PSR-17, Nyholm PSR-7 by default)
 - Application, pipeline and runner (classic SAPI or FrankenPHP worker)
 - Router (FastRoute) and routing middlewares
 - Error handler

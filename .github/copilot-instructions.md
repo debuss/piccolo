@@ -62,7 +62,7 @@ Handlers extend the abstract `Piccolo\Http\Handler` of the framework (which impl
 use `$this->json($data, $status)` and `$this->html($content, $status)`, or `$this->responseFactory` /
 `$this->streamFactory` for other responses. `json()` lets `JsonException` bubble up when the data cannot be encoded.
 In unit tests, set the factories with `setResponseFactory()` / `setStreamFactory()`, as the container does.
-Never instantiate response classes of a PSR-7 implementation (e.g. `Laminas\Diactoros\Response\JsonResponse`): the
+Never instantiate response classes of a PSR-7 implementation (e.g. `Nyholm\Psr7\Response`): the
 implementation is only chosen by the `HttpFactoryServiceProvider` of the framework (replaceable in `config/container.php`).
 
 **Routing is attribute-based.** Always declare routes with attributes:
@@ -474,7 +474,7 @@ End-to-end tests go through the real kernel, container, pipeline and routes: `ht
 
 - Do not omit `declare(strict_types=1)` from any PHP source file in `src/`.
 - Do not import `Infrastructure` classes anywhere in `Application` — always depend on Domain interfaces.
-- Do not use classes of a specific PSR-7 implementation (e.g. Diactoros) in `src/` — use the PSR-17 factories (the
+- Do not use classes of a specific PSR-7 implementation (e.g. Nyholm) in `src/` — use the PSR-17 factories (the
   implementation is chosen by `HttpFactoryServiceProvider`, replaceable in `config/container.php`).
 - Do not log request headers, cookies or body.
 - Do not use `Logger::class` directly where `LoggerInterface::class` is sufficient.

@@ -35,7 +35,7 @@
   },
   "require": {
     "php": "^8.4",
-    "debuss-a/piccolo-framework": "^0.1",
+    "debuss-a/piccolo-framework": "^0.2",
     "php-http/curl-client": "^2.4",
     "psr/http-client": "^1.0"
   },
