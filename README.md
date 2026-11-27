@@ -261,11 +261,19 @@ route on its own. Behind a reverse proxy, configure the trusted proxies (registe
 `bin/console` is built on Symfony Console, with the same configuration and container as the web application:
 
 ```bash
-bin/console                # lists the commands
-bin/console routes:list    # lists the routes, with their middlewares and handler
-bin/console cache:clear    # removes the content of storage/cache
-bin/console cache:warmup   # regenerates the production caches (routes), to run on each deployment
+bin/console                            # lists the commands
+bin/console about                      # versions, environment, PSR-7 implementation, caches, PHP and worker settings
+bin/console routes:list                # lists the routes, with their middlewares and handler
+bin/console routes:match GET /api/ping # tells which route matches a request, with its handler and parameters
+bin/console container:list [filter]    # lists the services, with their lifetime and how they are created
+bin/console container:check            # resolves every service, middleware and handler (run by the CI)
+bin/console cache:clear                # removes the content of storage/cache
+bin/console cache:warmup               # regenerates the production caches (routes), to run on each deployment
 ```
+
+`container:check` finds before a deployment the errors otherwise only seen on the first request using a service (a
+parameter that cannot be resolved, a scoped service in a singleton, a missing class). The services are really created:
+leave out with `--exclude` (`-x`) the ones that cannot be created where it runs (e.g. a database not reachable in the CI).
 
 The commands of the framework are always available. Add yours in `src/Application/Console`, and map them to their name
 in the array returned by `config/commands.php`. They are resolved from the container only when they are run, so they
