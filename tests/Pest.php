@@ -41,7 +41,11 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * A client sending requests to the application as its HTTP server would: the real kernel, container, pipeline and
+ * routes, each request in its own scope.
+ */
+function client(): Piccolo\Testing\TestClient
 {
-    // ..
+    return new Piccolo\Testing\TestClient(dirname(__DIR__));
 }

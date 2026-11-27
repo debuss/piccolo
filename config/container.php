@@ -1,116 +1,39 @@
 <?php declare(strict_types=1);
 
-use Awareness\ContainerAwareInterface;
-use Application\ServiceProvider\{CorsServiceProvider,
-    ErrorHandlerServiceProvider,
-    FastRouteRouterServiceProvider,
-    HttpFactoryServiceProvider,
-    LoggerServiceProvider,
-    ProblemDetailsServiceProvider,
-    RequestHandlerRunnerServiceProvider,
-    TemplateRendererServiceProvider};
-use League\Container\{Container, ReflectionContainer};
+use Borsch\Config\Config;
 use Domain\Post\PostClientInterface;
 use Http\Client\Curl\Client;
 use Infrastructure\Post\PostClient;
-use Laminas\Diactoros\{RequestFactory,
-    ResponseFactory,
-    ServerRequestFactory,
-    StreamFactory,
-    UploadedFileFactory,
-    UriFactory};
-use Psr\Container\ContainerInterface;
+use Piccolo\Container\ContainerBuilder;
+use Piccolo\Environment;
 use Psr\Http\Client\ClientInterface;
 
 /*
  * ------------------------------------------
- * Base League Container
+ * Container
  * ------------------------------------------
  *
- * This is the main container for the application. It is used to register and resolve services.
- * The container is configured to use the ReflectionContainer to automatically resolve dependencies.
- * The container is also configured to use the defaultToShared option, which means that services will be shared by
- * default.
+ * The services of the framework (HTTP factories, logger, router, error handler, Problem Details, CORS, templates, ...)
+ * are already registered by its service providers. Register the services of your application here, or in your own
+ * service providers ($builder->addProvider(new MyServiceProvider())). A service registered again replaces the one of
+ * the framework, e.g. another PSR-7 implementation:
  *
- * A ContainerInterface definition containing the container itself is also added in order to be retrieved from services
- * that need it.
+ *  $builder->addProvider(new HttpFactoryServiceProvider(new Psr17Factory(), new Psr17Factory(), ...));
  *
- * For more information on League Container: https://container.thephpleague.com/5.x/
+ * Each service has a lifetime:
+ *  - singleton: a single instance for the whole application (in a FrankenPHP worker, for all the requests): it must
+ *    not keep a state of a request;
+ *  - scoped: a single instance per request (unit of work, current user, ...);
+ *  - transient: a new instance on each resolution.
+ *
+ * The classes that are not registered (handlers, middlewares, ...) are autowired as transient services.
+ *
+ * For more information on the container: https://github.com/debuss/piccolo-container
  */
-
-$container = new Container(defaultToShared: true);
-$container->delegate(new ReflectionContainer());
-$container->add(ContainerInterface::class, $container);
-
-/*
- * ------------------------------------------
- * Service Providers
- * ------------------------------------------
- *
- * Here you can register your service providers. Service providers are classes that register services in the container.
- * The advantage of using service providers is that they allow you to organize your service definitions and dependencies
- * in a modular way, making your application easier to maintain and extend.
- * Moreover, they are only loaded if a service requires one of the definitions inside it, making your app lighter.
- *
- * For more information on service providers : https://container.thephpleague.com/5.x/service-providers/
- */
-
-$container->addServiceProvider(new HttpFactoryServiceProvider(
-    new RequestFactory(),
-    new ResponseFactory(),
-    new ServerRequestFactory(),
-    new StreamFactory(),
-    new UploadedFileFactory(),
-    new UriFactory()
-));
-$container->addServiceProvider(new LoggerServiceProvider());
-$container->addServiceProvider(new RequestHandlerRunnerServiceProvider());
-$container->addServiceProvider(new FastRouteRouterServiceProvider());
-$container->addServiceProvider(new ErrorHandlerServiceProvider());
-$container->addServiceProvider(new TemplateRendererServiceProvider());
-$container->addServiceProvider(new ProblemDetailsServiceProvider());
-$container->addServiceProvider(new CorsServiceProvider());
-
-/*
- * ------------------------------------------
- * Definitions
- * ------------------------------------------
- *
- * Add your own definitions here that do not need to be in a service provider.
- *
- * As an example here, the PostClientInterface is defined to be resolved to the PostClient class.
- * You can also move it to a service provider if you prefer to keep your definitions organized in a separate class.
- *
- * For more information on definitions : https://container.thephpleague.com/5.x/definitions/
- */
-
-$container->add(ClientInterface::class, Client::class);
-$container->add(PostClientInterface::class, PostClient::class);
-
-/*
- * ------------------------------------------
- * Events
- * ------------------------------------------
- *
- * The League Container event system provides a way to hook into the container’s lifecycle and modify services during
- * resolution.
- *
- * Here, services implementing ContainerAwareInterface have a method `setContainer()` and will be automatically injected
- * with the container instance after they are resolved (via the $class->setContainer($container)).
- *
- * This is particularly useful because you do not need to request the container in your constructor, keeping it
- * lightweight and clean.
- *
- * Other "Aware" interfaces are available for common PSR interfaces (ResponseFactoryAwareInterface,
- * StreamFactoryAwareInterface, ...).
- *
- * For more information on awareness : https://github.com/debuss/awareness
- * For more information on events : https://container.thephpleague.com/5.x/events
- */
-
-$container->afterResolve(
-    ContainerAwareInterface::class,
-    static fn (ContainerAwareInterface $class) => $class->setContainer($container)
-);
-
-return $container;
+return static function (ContainerBuilder $builder, Config $config, Environment $environment): void
+{
+    // As an example here, the PostClientInterface is defined to be resolved to the PostClient class, the
+    // implementations from Infrastructure being only wired to the Domain interfaces here.
+    $builder->singleton(ClientInterface::class, Client::class);
+    $builder->singleton(PostClientInterface::class, PostClient::class);
+};

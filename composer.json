@@ -1,7 +1,7 @@
 {
   "name": "debuss-a/piccolo",
   "type": "project",
-  "description": "A PSR-15 application skeleton built on Laminas Stratigility and Mezzio components, with League Container, attribute-based routing, and a DDD-layered structure.",
+  "description": "A PSR-15 application skeleton built on the Piccolo framework (Laminas Stratigility and Mezzio components), with a scoped container, attribute-based routing, FrankenPHP worker mode support, and a DDD-layered structure.",
   "license": "MIT",
   "keywords": [
     "psr",
@@ -12,7 +12,8 @@
     "ddd",
     "micro",
     "framework",
-    "api"
+    "api",
+    "frankenphp"
   ],
   "authors": [
     {
@@ -25,11 +26,7 @@
       "Application\\": "src/Application/",
       "Domain\\": "src/Domain/",
       "Infrastructure\\": "src/Infrastructure/"
-    },
-    "files": [
-      "bootstrap/defines.php",
-      "bootstrap/helpers.php"
-    ]
+    }
   },
   "autoload-dev": {
     "psr-4": {
@@ -38,35 +35,15 @@
   },
   "require": {
     "php": "^8.4",
-    "borschphp/config": "^1.4",
-    "debuss-a/attribute-routing": "^3.0",
-    "debuss-a/awareness": "^1.2",
-    "debuss-a/server-request-factory": "^1.0",
-    "laminas/laminas-diactoros": "^3.8",
-    "laminas/laminas-httphandlerrunner": "^2.13",
-    "laminas/laminas-stratigility": "^4.3",
-    "league/container": "^5.2",
-    "league/plates": "^3.6",
-    "mezzio/mezzio-cors": "^1.16",
-    "mezzio/mezzio-fastroute": "^3.14",
-    "mezzio/mezzio-helpers": "^5.20",
-    "mezzio/mezzio-platesrenderer": "^2.14",
-    "mezzio/mezzio-problem-details": "^1.19",
-    "mezzio/mezzio-router": "^4.2",
-    "mezzio/mezzio-template": "^3.0",
-    "monolog/monolog": "^3.10",
+    "debuss-a/piccolo-framework": "^0.6",
     "php-http/curl-client": "^2.4",
-    "psr/container": "^2.0",
-    "psr/http-client": "^1.0",
-    "psr/http-factory": "^1.1",
-    "psr/http-message": "^2.0",
-    "psr/http-server-handler": "^1.0",
-    "psr/http-server-middleware": "^1.0",
-    "psr/log": "^3.0",
-    "symfony/console": "^8.1"
+    "psr/http-client": "^1.0"
   },
   "require-dev": {
     "pestphp/pest": "^5.1"
+  },
+  "suggest": {
+    "debuss-a/piccolo-database": "For the database access through stored procedures only, a class per procedure"
   },
   "scripts": {
     "post-create-project-cmd": [

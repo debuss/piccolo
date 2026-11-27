@@ -1,13 +1,15 @@
 <?php declare(strict_types=1);
 
-use Application\Application;
-use Application\Middleware\{LazyLoadingMiddleware, RequestIdMiddleware};
 use Laminas\Stratigility\MiddlewarePipe;
 use Mezzio\Cors\Configuration\{ConfigurationInterface, ProjectConfiguration};
 use Mezzio\Cors\Middleware\CorsMiddleware;
+use Mezzio\Router\{FastRouteRouter, RouteCollector};
 use Mezzio\Router\Middleware\RouteMiddleware;
-use Mezzio\Router\RouteCollector;
-use Tests\Fixtures\{FakeContainer, FakeRequestHandlerRunner, FakeRouter};
+use Piccolo\Application;
+use Piccolo\Container\ContainerBuilder;
+use Piccolo\Middleware\{LazyLoadingMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware};
+use Piccolo\Runtime\RunnerInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * The middlewares piped by config/pipeline.php, as the container entries they are lazily resolved from.
@@ -17,8 +19,12 @@ use Tests\Fixtures\{FakeContainer, FakeRequestHandlerRunner, FakeRouter};
 function pipedMiddlewares(ProjectConfiguration $corsConfiguration): array
 {
     $pipeline = new MiddlewarePipe();
-    $container = new FakeContainer([ConfigurationInterface::class => $corsConfiguration]);
-    $app = new Application($pipeline, new FakeRequestHandlerRunner(), new RouteCollector(new FakeRouter()), $container);
+    $container = new ContainerBuilder()->instance(ConfigurationInterface::class, $corsConfiguration)->build();
+    $runner = new class implements RunnerInterface {
+        public function run(RequestHandlerInterface $handler): void {}
+    };
+
+    $app = new Application($pipeline, $runner, new RouteCollector(new FastRouteRouter()), $container);
 
     (require config_path('pipeline.php'))($app, $container);
 
@@ -32,6 +38,13 @@ function pipedMiddlewares(ProjectConfiguration $corsConfiguration): array
 
 test('pipes the RequestIdMiddleware first, so that it wraps the error handler', function () {
     expect(pipedMiddlewares(new ProjectConfiguration([]))[0])->toBe(RequestIdMiddleware::class);
+});
+
+test('pipes the SecurityHeadersMiddleware right after, so that the error responses have the headers too', function () {
+    $middlewares = pipedMiddlewares(new ProjectConfiguration([]));
+
+    expect($middlewares[1])->toBe(SecurityHeadersMiddleware::class)
+        ->and($middlewares[2])->toBe(Laminas\Stratigility\Middleware\ErrorHandler::class);
 });
 
 test('does not pipe the CORS middleware when no origin is allowed', function () {

@@ -2,10 +2,10 @@
 
 namespace Application\Handler\Api;
 
-use Application\Handler\Handler;
+use Piccolo\Http\Handler;
 use Domain\Post\PostClientInterface;
 use Domain\Shared\Exception\NotFoundException;
-use Mezzio\ProblemDetails\ProblemDetailsResponseFactory;
+use Piccolo\Http\Exception\NotFoundException as HttpNotFoundException;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};
 use Routing\Attribute\{AsController, Get};
 
@@ -14,8 +14,7 @@ class PostHandler extends Handler
 {
 
     public function __construct(
-        private PostClientInterface $client,
-        private ProblemDetailsResponseFactory $problemDetails
+        private PostClientInterface $client
     ) {}
 
     #[Get('/posts[/{id:\d+}]', name: 'api.v1.posts.get')]
@@ -29,7 +28,8 @@ class PostHandler extends Handler
         try {
             return $this->json($this->client->getById((int)$id));
         } catch (NotFoundException $e) {
-            return $this->problemDetails->createResponse($request, 404, $e->getMessage());
+            // Answered as a 404 Problem Details response by the ProblemDetailsMiddleware
+            throw new HttpNotFoundException($e->getMessage(), previous: $e);
         }
     }
 }

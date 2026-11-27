@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-use Application\{Application, Environment};
+use Piccolo\{Application, Environment};
 use Application\Handler\HealthCheck\PingHandler;
 use Psr\Container\ContainerInterface;
 use Routing\{AttributeRouteLoader, CachedRouteLoader};

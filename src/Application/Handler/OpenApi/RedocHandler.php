@@ -2,7 +2,7 @@
 
 namespace Application\Handler\OpenApi;
 
-use Application\Handler\Handler;
+use Piccolo\Http\Handler;
 use Mezzio\Router\RouterInterface;
 use Mezzio\Template\TemplateRendererInterface;
 use Psr\Http\Message\{ResponseInterface, ServerRequestInterface};

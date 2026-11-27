@@ -38,3 +38,6 @@ jobs:
 
       - name: Run test suite
         run: composer test
+
+      - name: Check the container
+        run: bin/console container:check

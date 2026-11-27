@@ -2,7 +2,12 @@
 
 Piccolo is a lightweight PHP skeleton inspired by the Mezzio Skeleton App, designed to keep the same PSR-first architecture with less bootstrap complexity.
 
-It uses Laminas and Mezzio components directly (without `mezzio/mezzio`) and provides a clean, editable `Application` layer, attribute-based routing, and service-provider-driven dependency injection.
+It uses Laminas and Mezzio components directly (without `mezzio/mezzio`), through the
+[Piccolo framework](https://github.com/debuss/piccolo-framework) package: attribute-based routing, service-provider-driven
+dependency injection with a [scoped container](https://github.com/debuss/piccolo-container) (singleton, scoped and
+transient services, as in .NET), and support for the [FrankenPHP worker mode](#worker-mode-frankenphp).
+
+The skeleton only contains your application: handlers, domain, infrastructure, and the configuration of the framework.
 
 ## Goals
 
@@ -13,17 +18,17 @@ It uses Laminas and Mezzio components directly (without `mezzio/mezzio`) and pro
 
 ## Tech Stack
 
+- **Framework**
+  - `debuss-a/piccolo-framework`: kernel, application, runners, service providers, middlewares, console commands
+  - `debuss-a/piccolo-container`: PSR-11 container with singleton, scoped and transient lifetimes
 - **Runtime**
-  - PHP 8.4+
-  - `laminas/laminas-stratigility`
-  - `laminas/laminas-httphandlerrunner`
-  - `laminas/laminas-diactoros` (default PSR-7 / PSR-17 implementation, swappable)
+  - PHP 8.4+, classic SAPI (PHP-FPM, built-in server, ...) or FrankenPHP worker mode
+  - `laminas/laminas-stratigility`, `laminas/laminas-httphandlerrunner`
+  - `nyholm/psr7` (default PSR-7 / PSR-17 implementation, swappable)
   - `debuss-a/server-request-factory` (server request from the globals, with any PSR-17 implementation)
 - **Routing**
   - `mezzio/mezzio-fastroute`
   - `debuss-a/attribute-routing` (attribute route collector)
-- **Container**
-  - `league/container` + Service Providers + ReflectionContainer
 - **Configuration**
   - `borschphp/config` (with `.env` support)
 - **Templating**
@@ -39,10 +44,12 @@ It uses Laminas and Mezzio components directly (without `mezzio/mezzio`) and pro
 ## Getting Started
 
 ```bash
-composer install
-cp .env.example .env
+composer create-project debuss-a/piccolo my-app   # also creates the .env file from .env.example
+cd my-app
 composer serve
 ```
+
+From a clone of this repository, run `composer install` and `cp .env.example .env` instead.
 
 Application runs at: `http://localhost:8080`
 
@@ -51,54 +58,71 @@ Application runs at: `http://localhost:8080`
 ```text
 .
 ├── bin/
-│   └── console          # console entry point (Symfony Console)
-├── bootstrap/
-│   ├── app.php          # loads the configuration, applies PHP runtime settings, builds the container
-│   ├── defines.php      # global defines
-│   └── helpers.php      # path helper functions
+│   └── console          # console entry point: Kernel::boot(...)->console()->run()
 ├── config/
-│   ├── commands.php     # console commands
+│   ├── commands.php     # console commands of the application
 │   ├── configuration.php # configuration sources (.env, environment variables)
-│   ├── container.php    # League\Container wiring + service providers
+│   ├── container.php    # services of the application (the composition root)
 │   ├── pipeline.php     # middleware pipeline
 │   └── routes.php       # attribute route loader + manual routes
 ├── public/
-│   └── index.php        # front controller
+│   └── index.php        # front controller: Kernel::boot(...)->http()->run()
 ├── src/
-│   ├── Application/     # delivery layer: handlers, middleware, console commands, service providers
+│   ├── Application/     # delivery layer: handlers (and your middlewares, commands, service providers)
 │   ├── Domain/          # business contracts/models/shared concepts
 │   └── Infrastructure/  # external integrations (HTTP client, persistence...)
-└── storage/
-    ├── cache/
-    ├── logs/
-    ├── openapi.yaml
-    └── templates/
+├── storage/
+│   ├── cache/
+│   ├── logs/
+│   ├── openapi.yaml
+│   └── templates/
+├── tests/               # Pest: architecture, end-to-end (Feature) and unit tests
+└── Dockerfile           # FrankenPHP in worker mode
 ```
 
 ## Core Architecture
 
-### 1) Custom `Application` class
+### 1) The kernel and the application
 
-The skeleton includes a rewritten `Application` class in `src/Application/Application.php`.  
-It mirrors the familiar Mezzio app flow while keeping the entry point fully editable for teams.
+`Piccolo\Kernel` (framework) boots the application the same way for HTTP and the console: paths, configuration,
+environment and PHP settings, then the container. `Piccolo\Application` mirrors the familiar Mezzio app flow
+(`pipe()`, `route()`, `get()`, ...), and handles each request in its own container scope.
 
 ### 2) Container with Service Providers
 
-`config/container.php` uses `league/container` and registers focused service providers:
+The service providers of the framework register:
 
-- HTTP factories (PSR-17)
-- Request handler runner
-- Router (FastRoute)
+- HTTP factories (PSR-17, Nyholm PSR-7 by default)
+- Application, pipeline and runner (classic SAPI or FrankenPHP worker)
+- Router (FastRoute) and routing middlewares
 - Error handler
 - Logger
 - Template renderer
 - Problem Details middleware
+- CORS middleware
 
-The PSR-7 / PSR-17 implementation is only chosen in `config/container.php`, where the factories are given to the
-HTTP factories service provider. The rest of the skeleton (handlers, server request creation, error responses) only
-relies on the PSR-17 interfaces, so switching to another implementation is a matter of changing these factories.
+`config/container.php` then registers the services of the application, and can replace the ones of the framework.
+Every service has a lifetime:
 
-The `debuss-a/awareness` package is used to inject common dependencies into *Aware* classes after resolution (e.g. logger, factories, container), which helps keep constructors small.
+| Lifetime | Instances | Examples |
+|---|---|---|
+| **Singleton** | one for the whole application | configuration, logger, router, HTTP clients |
+| **Scoped** | one per request | unit of work, current user |
+| **Transient** | a new one each time | handlers, middlewares (the classes that are not registered are autowired as transient) |
+
+```php
+return static function (ContainerBuilder $builder, Config $config, Environment $environment): void
+{
+    $builder->singleton(PostClientInterface::class, PostClient::class);
+    $builder->scoped(UnitOfWork::class);
+};
+```
+
+The PSR-7 / PSR-17 implementation is only chosen by `HttpFactoryServiceProvider`: register it again in
+`config/container.php` with other factories to switch. The rest of the framework and of the skeleton (handlers, server
+request creation, error responses) only relies on the PSR-17 interfaces.
+
+The `debuss-a/awareness` package is used to inject common dependencies into *Aware* classes after their creation (e.g. logger, factories, container), which helps keep constructors small.
 
 ### 3) Routing strategy
 
@@ -120,6 +144,11 @@ OpenAPI document is cached by the clients thanks to `HttpCacheMiddleware` (`Cach
 public function handle(ServerRequestInterface $request): ResponseInterface
 ```
 
+By default, any cache can keep these responses for an hour (`public, max-age=3600`). Register the middleware with other
+settings in `config/container.php` (`new HttpCacheMiddleware(maxAge: 600, private: true)`, a max age of 0 revalidating
+each request with the `ETag`), or set the `Cache-Control` (`no-store` to disable it) or `ETag` header of a response in
+its handler: they are kept.
+
 Middlewares that apply to a whole path, like `/api`, are piped in `config/pipeline.php` instead.
 
 ### 4) Middleware pipeline
@@ -127,22 +156,32 @@ Middlewares that apply to a whole path, like `/api`, are piped in `config/pipeli
 `config/pipeline.php` keeps a Mezzio-style flow:
 
 1. `RequestIdMiddleware` (identifies the request, see [Error Handling and Logging](#error-handling-and-logging))
-2. `ErrorHandler`
-3. `OriginalMessages` (keeps the original URI for middleware piped on a path)
-4. `CorsMiddleware`, only when CORS is enabled (see [CORS](#cors))
-5. `/api` scoped middlewares (`ApiAcceptHeaderMiddleware`, `ProblemDetailsMiddleware`, `BodyParamsMiddleware`)
-6. `RouteMiddleware`
-7. `ImplicitHeadMiddleware`
-8. `ImplicitOptionsMiddleware`
-9. `MethodNotAllowedMiddleware`
-10. `DispatchMiddleware`
-11. `NotFoundHandler`
+2. `SecurityHeadersMiddleware` (`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, and HSTS in production)
+3. `ErrorHandler`
+4. `OriginalMessages` (keeps the original URI for middleware piped on a path)
+5. `CorsMiddleware`, only when CORS is enabled (see [CORS](#cors))
+6. `/api` scoped middlewares (`ApiAcceptHeaderMiddleware`, `ProblemDetailsMiddleware`, `BodyParamsMiddleware`)
+7. `RouteMiddleware`
+8. `ImplicitHeadMiddleware`
+9. `ImplicitOptionsMiddleware`
+10. `MethodNotAllowedMiddleware`
+11. `DispatchMiddleware`
+12. `NotFoundHandler`
+
+The security headers set by a handler are kept. To replace or remove some of them for the whole application, register
+the middleware again in `config/container.php`:
+
+```php
+$builder->singleton(SecurityHeadersMiddleware::class, static fn (Environment $environment) =>
+    new SecurityHeadersMiddleware($environment, ['X-Frame-Options' => 'SAMEORIGIN', 'Strict-Transport-Security' => null])
+);
+```
 
 ### 5) Layer dependencies
 
 Dependencies always point to the Domain: `Application` and `Infrastructure` may use `Domain`, but the Domain uses
 neither of them, and `Application` does not use `Infrastructure`. Infrastructure implementations are only wired to
-Domain interfaces in `config/container.php`.
+Domain interfaces in `config/container.php`. The Domain does not use the framework either.
 
 These rules are enforced by architecture tests (`tests/ArchitectureTest.php`).
 
@@ -165,7 +204,7 @@ The ReDoc handler renders documentation directly from the route-generated OpenAP
 
 ## Configuration
 
-The configuration is loaded once by `bootstrap/app.php` from `config/configuration.php`:
+The configuration is loaded once by the kernel from `config/configuration.php`:
 
 1. the `.env` file, optional (for local development)
 2. the real environment variables, which override the `.env` file
@@ -180,10 +219,11 @@ Available variables (see `.env.example`):
 - `LOG_STREAM` — where logs are written: `php://stderr` (default) or a file path relative to the app root
 - `LOG_LEVEL` — minimum level to log: `debug` by default, `info` in production
 - `TIMEZONE` — applied to the whole application (default `UTC`)
+- `MAX_REQUESTS` — in FrankenPHP worker mode, number of requests after which a worker is restarted (unlimited by default)
 - `CORS_ALLOWED_ORIGINS`, `CORS_ALLOWED_HEADERS`, `CORS_EXPOSED_HEADERS`, `CORS_ALLOW_CREDENTIALS`, `CORS_MAX_AGE` —
   see [CORS](#cors)
 
-`APP_ENV` is read in a single place, through the `Application\Environment` enum, which services can depend on.
+`APP_ENV` is read in a single place, through the `Piccolo\Environment` enum, which services can depend on.
 With `APP_ENV=production`:
 
 - errors are not displayed, and error responses do not contain exception details
@@ -212,18 +252,20 @@ CORS_ALLOWED_ORIGINS=https://app.example.com,http://localhost:5173
 - Preflight responses are not cached by the browser by default (`CORS_MAX_AGE`, in seconds).
 
 The configuration applies to every route: `CorsMiddleware` is piped before the routing, as it matches the requested
-route on its own. Behind a reverse proxy, configure the trusted proxies (see `RequestHandlerRunnerServiceProvider`) so
-that the scheme and host of the request, compared to the origin, are the public ones.
+route on its own. Behind a reverse proxy, configure the trusted proxies (register
+`Debuss\ServerRequestFactory\ServerRequestFactory` again with a `TrustedProxies` argument in `config/container.php`, see
+`ApplicationServiceProvider`) so that the scheme and host of the request, compared to the origin, are the public ones.
 
 ## Error Handling and Logging
 
 - **HTML errors**: Stratigility `ErrorHandler`; the exception (message and trace) is only displayed outside
   production, otherwise the reason phrase is returned.
 - **API errors**: `ProblemDetailsMiddleware` (scoped to `/api`) returns RFC 7807 responses. Unknown exceptions become a
-  generic 500, with details only outside production. Handlers translate the Domain exceptions they know about, e.g.
-  `PostHandler` returns a 404 Problem Details response on `NotFoundException`.
-- **Logs**: JSON lines written by Monolog to `LOG_STREAM`. Errors are logged with the request method, URI and response
-  status only: headers, cookies and body are never logged, as they can contain credentials.
+  generic 500, with details only outside production. Handlers translate the Domain exceptions they know about into
+  the HTTP exceptions of the framework (`Piccolo\Http\Exception\NotFoundException`, `UnprocessableEntityException`,
+  ...), answered with their status and detail, e.g. `PostHandler` throws a `NotFoundException` for an unknown post.
+- **Logs**: JSON lines written by Monolog to `LOG_STREAM`. Errors are logged (as warnings for a 4xx response) with the
+  request method, URI and response status only: headers, cookies and body are never logged, as they can contain credentials.
 - **Request identifier**: `RequestIdMiddleware` keeps the `X-Request-Id` header set by a reverse proxy or a load
   balancer (letters, digits, `.`, `_`, `:` and `-`, at most 128 characters), or generates one. It is added to every log
   record of the request (`extra.request_id`), set in the `request_id` attribute of the request, and sent back in the
@@ -235,28 +277,109 @@ that the scheme and host of the request, compared to the origin, are the public 
 `bin/console` is built on Symfony Console, with the same configuration and container as the web application:
 
 ```bash
-bin/console                # lists the commands
-bin/console routes:list    # lists the routes, with their middlewares and handler
-bin/console cache:clear    # removes the content of storage/cache
-bin/console cache:warmup   # regenerates the production caches (routes), to run on each deployment
+bin/console                            # lists the commands
+bin/console about                      # versions, environment, PSR-7 implementation, caches, PHP and worker settings
+bin/console routes:list                # lists the routes, with their middlewares and handler
+bin/console routes:match GET /api/ping # tells which route matches a request, with its handler and parameters
+bin/console container:list [filter]    # lists the services, with their lifetime and how they are created
+bin/console container:check            # resolves every service, middleware and handler (run by the CI)
+bin/console cache:clear                # removes the content of storage/cache
+bin/console cache:warmup               # regenerates the production caches (routes), to run on each deployment
 ```
 
-Commands live in `src/Application/Console` and are mapped to their name in `config/commands.php`. They are resolved from
-the container only when they are run, so they can depend on any service.
+`container:check` finds before a deployment the errors otherwise only seen on the first request using a service (a
+parameter that cannot be resolved, a scoped service in a singleton, a missing class). The services are really created:
+leave out with `--exclude` (`-x`) the ones that cannot be created where it runs (e.g. a database not reachable in the CI).
+
+The commands of the framework are always available. Add yours in `src/Application/Console`, and map them to their name
+in the array returned by `config/commands.php`. They are resolved from the container only when they are run, so they
+can depend on any service.
+
+## Worker mode (FrankenPHP)
+
+In [worker mode](https://frankenphp.dev/docs/worker/), FrankenPHP boots the application once (container, pipeline,
+routes) and keeps it in memory to handle the requests, instead of booting it again for each request. Nothing changes in
+the code: `public/index.php` detects the worker and handles the requests in a loop.
+
+```bash
+docker build -t piccolo .
+docker run -p 80:80 -p 443:443 -e SERVER_NAME=localhost piccolo
+```
+
+- Each request is handled in its own container scope: the scoped services are created again for each request.
+- After each request, the singletons holding a state are reset (Monolog buffers, request identifier, ...), and the
+  worker is restarted after `MAX_REQUESTS` requests (500 in the `Dockerfile`).
+- **Never keep a request state in a singleton** (the current user, ...): it would be seen by the next requests. Make
+  the service scoped, or reset it after each request (implement `Piccolo\Container\Resettable`).
+- The `Dockerfile` runs `bin/console cache:warmup` (`APP_ENV=production`), so the routes are compiled at build time.
+
+## Database (stored procedures)
+
+The skeleton has no database. [debuss-a/piccolo-database](https://github.com/debuss/piccolo-database) (suggested in
+`composer.json`) gives a database access **through stored procedures only**, for a database user only granted
+`EXECUTE` on the procedures validated by the DBAs: there is no way to run a SQL query.
+
+```bash
+composer require debuss-a/piccolo-database
+```
+
+```php
+// config/container.php
+$builder->addProvider(new Piccolo\Database\ServiceProvider\DatabaseServiceProvider());
+```
+
+Each procedure is a class of the Infrastructure, whose promoted constructor parameters are the parameters of the
+procedure, in their order: the IDE and PHPStan know them, and the constructor validates them before the call.
+
+```php
+namespace Infrastructure\Country\Procedure;
+
+/** @implements Query<CountryRow> */
+#[StoredProcedure('sp_fetch_country_by_iso', timeout: 5)]
+final readonly class FetchCountryByIso implements Query
+{
+    public function __construct(#[Param('p_iso')] public string $iso) {}
+
+    public function rowClass(): string
+    {
+        return CountryRow::class;
+    }
+}
+```
+
+A repository of the Infrastructure implements an interface of the Domain with the `ProcedureRunnerInterface`
+(`all()`, `single()`, `singleOrNull()`, `scalar()`, `execute()`, `transaction()`, ...), and turns the rows into objects of
+the Domain. It is configured with `DB_DSN`, `DB_USER`, `DB_PASSWORD`, `DB_PARAMETER_PREFIX`, ..., handles the lost
+connections and the transactions left open in worker mode, and gives a `FakeProcedureRunner` for the tests: see its
+README.
+
+The architecture tests forbid `PDO` in `src/`, and the database (`Piccolo\Database`, `StoredProcedures`) in the
+Application and the Domain.
 
 ## Testing
 
 Pest is included as a dev dependency:
 
 ```bash
-./vendor/bin/pest
+composer test
 ```
+
+- `tests/ArchitectureTest.php` enforces the [layer dependencies](#5-layer-dependencies).
+- `tests/Feature/HttpTest.php` sends requests through the real kernel, container, pipeline and routes, with the
+  `TestClient` of the framework (`client()` in `tests/Pest.php`):
+
+  ```php
+  client()->get('/api/ping')->assertOk()->assertHeader('X-Request-Id');
+  client()->post('/api/v1/posts', ['title' => 'Hello'])->assertStatus(201)->assertJson(['title' => 'Hello']);
+  expect(client()->get('/api/ping')->json())->toHaveKey('ack');
+  ```
+- The classes of the framework and of the container are tested in their own packages.
 
 ## Extending the Skeleton
 
 - Add new handlers in `src/Application/Handler`
 - Declare routes via attributes (or manually in `config/routes.php`)
-- Register app services in `config/container.php` or dedicated service providers
+- Register app services in `config/container.php` or dedicated service providers, with the right lifetime
 - Add console commands in `src/Application/Console`, and map them in `config/commands.php`
 - Keep business logic in `Domain`, and external IO in `Infrastructure`
 
